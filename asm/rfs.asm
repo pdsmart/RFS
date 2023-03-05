@@ -230,7 +230,7 @@ SIGNON1:    CALL    DPCT
 SIGNON2:    LD      DE,MSGSON                                            ; Sign on message,
 SIGNON3:    LD      HL,PRINTMSG
             CALL    BKSW0to6
-        ; JR ST1X
+            ; JR ST1X
 
             ; Initialise SD card, report any errors.
             LD      HL, SDINIT                                           ; SD Card Initialisation

@@ -17,6 +17,7 @@
 ;                               only enable the control registers if a fixed number of reads is made
 ;                               into the upper 8 bytes which normally wouldnt occur. Caveat - ensure
 ;                               that no loop instruction is ever placed into EFF8H - EFFFH.
+;                   Mar 2023 -  Fixed Floppy bug where the driver letter entered wasnt recognised.
 ;-
 ;--------------------------------------------------------------------------------------------------------
 ;- This source file is free software: you can redistribute it and-or modify
@@ -136,7 +137,7 @@ BPARA      EQU      01008H
            ;
 FDCK:      CALL     FDCKROM                                                  ; Check to see if the Floppy ROM is present, exit if it isnt.
            CALL     Z,0F000h
-           RET                                ; JP       CMDCMPEND
+           RET                                                               ; JP       CMDCMPEND
 FDCKROM:   LD       A,(0F000h)
            OR       A
            RET
@@ -157,9 +158,9 @@ L000F:     LD       DE,MSGBOOTDRV                                            ;
            LD       DE,011A3H                                                ; 
            CALL     GETL                                                     ; 
            LD       A,(DE)                                                   ; 
-           CP       01BH                                                     ; Check input value is in range 1-4.
+           CP       01BH                                                     ; BREAK pressed?
            JP       Z,SS                                                     ; 
-           LD       HL,0000CH                                                ; 
+           LD       HL,19                                                    ; Check input value is in range 1-4.
            ADD      HL,DE                                                    ; 
            LD       A,(HL)                                                   ; 
            CP       00DH                                                     ; 
