@@ -59,7 +59,7 @@ rm -f ${ROM_LIST_FILE}
 # Place the monitor roms into the MROM at the beginning for banked page usage.
 echo "cat ${ROM_PATH}/monitor_sa1510.rom ${ROM_PATH}/monitor_80c_sa1510.rom  ${ROM_PATH}/cbios.rom ${ROM_PATH}/rfs_mrom.rom ${ROM_PATH}/monitor_1z-013a.rom ${ROM_PATH}/monitor_80c_1z-013a.rom ${ROM_PATH}/ipl.rom ${ROM_PATH}/blank_mrom.rom > /tmp/mrom.rom"
 #cat ${ROM_PATH}/monitor_sa1510.rom ${ROM_PATH}/monitor_80c_sa1510.rom \
-cat ${ROM_PATH}/monitor_1Z-013A.rom ${ROM_PATH}/monitor_80c_sa1510.rom \
+cat ${ROM_PATH}/monitor_1Z-013A.rom ${ROM_PATH}/monitor_1Z-013A.rom \
     ${ROM_PATH}/cbios.rom ${ROM_PATH}/rfs_mrom.rom \
     ${ROM_PATH}/monitor_1z-013a.rom ${ROM_PATH}/monitor_80c_1z-013a.rom \
     ${ROM_PATH}/ipl.rom ${ROM_PATH}/blank_mrom.rom \
