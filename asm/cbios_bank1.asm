@@ -16,6 +16,10 @@
 ;-                             additional and different hardware. The SPI is now onboard the PCB and
 ;-                             not using the printer interface card.
 ;-                  Mar 2021 - Updates for the RFS v2.1 board.
+;-                  Jun 2023 - Updates to accommodate the Kuma 40/80 upgrade. INTEN is permanently
+;-                             enabled as PC2 is requisitioned to act as the 40/80 switch so ?MODE adjusted
+;-                             to setup the 8253 timer with a long 655 second interrupt to get around the
+;-                             problem where ?PRNT enables interrupts prior to the hook being setup.
 ;-
 ;--------------------------------------------------------------------------------------------------------
 ;- This source file is free software: you can redistribute it and-or modify
@@ -348,8 +352,18 @@ OPTBL:      DB      001H
             LD      (HL),E                                               ; Place current time in Counter 2
             LD      (HL),D
             DEC     HL
-            LD      (HL),03BH                                            ; Place divisor in Counter 1, = 315, thus 31500/315 = 100
-            LD      (HL),001H
+            IF      BUILD_MZ80A = 1
+              LD    (HL),03BH                                            ; Place divisor in Counter 1, = 315, thus 31500/315 = 100
+              LD    (HL),001H
+            ENDIF
+            IF      BUILD_MZ700 = 1
+              LD    (HL),09CH                                            ; Place divisor in Counter 1, = 156, thus 15611/156 = 100
+              LD    (HL),000H
+            ENDIF
+            IF      BUILD_MZ1500 = 1
+              LD    (HL),09CH                                            ; Place divisor in Counter 1, = 156, thus 15611/156 = 100
+              LD    (HL),000H
+            ENDIF
             NOP     
             NOP     
             NOP     
@@ -377,11 +391,35 @@ OPTBL:      DB      001H
             ; START OF KEYBOARD FUNCTIONALITY (INTR HANDLER SEPERATE IN CBIOS)
             ;-------------------------------------------------------------------------------
 
-?MODE:      LD      HL,KEYPF
+?MODE:      ;
+            ; 8255 PPI
+            ;
+            LD      HL,KEYPF
             LD      (HL),08AH
             LD      (HL),007H                                            ; Set Motor to Off.
-            LD      (HL),004H                                            ; Disable interrupts by setting INTMSK to 0.
+            IF      BUILD_KUMA = 0
+              LD    (HL),004H                                            ; Disable interrupts by setting INTMSK to 0.
+            ELSE
+              IF    BUILD_80C = 1
+                LD  (HL),005H                                            ; Kuma upgrade, set display to 80 columns.
+              ELSE
+                LD  (HL),004H                                            ; Kuma upgrade, set display to 40 columns.
+              ENDIF
+            ENDIF
             LD      (HL),001H                                            ; Set VGATE to 1.
+            ;
+            ; 8253 Timer.
+            ;
+            LD      HL,CONTF
+            LD      (HL),074H                                            ; Set Counter 1, read/load lsb first then msb, mode 2 rate generator, binary
+            LD      (HL),0B0H                                            ; Set Counter 2, read/load lsb first then msb, mode 0 interrupt on terminal count, binary
+            DEC     HL
+            LD      DE,0FFFFH                                            ; 100Hz coming into Timer 2 from Timer 1, set divisor to maximum, ie. set interrupts per second.
+            LD      (HL),E                                               ; Place current time in Counter 2
+            LD      (HL),D
+            DEC     HL
+            LD      (HL),03BH                                            ; Place divisor in Counter 1, = 315, thus 31500/315 = 100Hz
+            LD      (HL),001H
             RET     
 
             ; Method to check if a key has been pressed and stored in buffer.. 
@@ -451,6 +489,6 @@ GETKY2:     LD      A,(KEYCOUNT)                                         ; No ke
             ;-------------------------------------------------------------------------------
 
             ; Align to end of bank.
-            ALIGN   UROMADDR + 07F8h
-            ORG     UROMADDR + 07F8h
-            DB      0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh
+            ALIGN   UROMADDR + 07F7h
+            ORG     UROMADDR + 07F7h
+            DB      021H,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFH

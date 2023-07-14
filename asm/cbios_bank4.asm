@@ -636,6 +636,6 @@ DATAOVRMSG: DB      "DISK ERROR - DATA OVERRUN",    CR, NUL
 CRCERRMSG:  DB      "DISK ERROR - CRC ERROR",       CR, NUL
 
             ; Align to end of bank.
-            ALIGN   UROMADDR + 07F8h
-            ORG     UROMADDR + 07F8h
-            DB      0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh
+            ALIGN   UROMADDR + 07F7h
+            ORG     UROMADDR + 07F7h
+            DB      024H,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFH

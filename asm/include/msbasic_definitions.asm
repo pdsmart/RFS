@@ -16,6 +16,8 @@
 ;                   Jun 2020 - Copied and strpped from TZFS for BASIC.
 ;                   Mar 2021 - Updates to run on v2.1 RFS board and provide SD card CLOAD/CSAVE and DIR
 ;                              along with bug fixes.
+;-                  May 2023 - Updates to allow running on a FusionX board.
+;-                  Jun 2023 - Updates to accommodate a Kuma 80 Column upgrade.
 ;
 ;--------------------------------------------------------------------------------------------------------
 ;- This source file is free software: you can redistribute it and-or modify
@@ -44,6 +46,9 @@
 ; Build options. Set just one to '1' the rest to '0'.
 ; NB: As there are now 4 versions and 1 or more need to be built, ie. MZ-80A and RFS version for RFS, a flag is set in the file
 ; BASIC_build.asm which configures the equates below for the correct build.
+BUILD_KUMA              EQU     1                                        ; Enable support for Kuma 40/80 column upgrade.
+
+; NZ-80A Build
                         IF BUILD_VERSION = 0
 BUILD_MZ80A               EQU   1                                        ; Build for the standard Sharp MZ80A, no lower memory. Manually change MAXMEM above.
 BUILD_RFS                 EQU   0                                        ; Build for standard RFS with SD enhancements.
@@ -52,15 +57,8 @@ BUILD_TZFS                EQU   0                                        ; Build
 BUILD_80C                 EQU   0
 INCLUDE_ANSITERM          EQU   1                                        ; Include the Ansi terminal emulation processor in the build.
                         ENDIF
+; RFS 40 Build
                         IF BUILD_VERSION = 1
-BUILD_MZ80A               EQU   0
-BUILD_RFS                 EQU   1
-BUILD_RFSTZ               EQU   0
-BUILD_TZFS                EQU   0
-BUILD_80C                 EQU   1
-INCLUDE_ANSITERM          EQU   1                                        ; Include the Ansi terminal emulation processor in the build.
-                        ENDIF
-                        IF BUILD_VERSION = 2
 BUILD_MZ80A               EQU   0
 BUILD_RFS                 EQU   1
 BUILD_RFSTZ               EQU   0
@@ -68,6 +66,16 @@ BUILD_TZFS                EQU   0
 BUILD_80C                 EQU   0
 INCLUDE_ANSITERM          EQU   1                                        ; Include the Ansi terminal emulation processor in the build.
                         ENDIF
+; RFS 80 Build
+                        IF BUILD_VERSION = 2
+BUILD_MZ80A               EQU   0
+BUILD_RFS                 EQU   1
+BUILD_RFSTZ               EQU   0
+BUILD_TZFS                EQU   0
+BUILD_80C                 EQU   1
+INCLUDE_ANSITERM          EQU   1                                        ; Include the Ansi terminal emulation processor in the build.
+                        ENDIF
+; RFS/TZ Build
                         IF BUILD_VERSION = 3
 BUILD_MZ80A               EQU   0
 BUILD_RFS                 EQU   0
@@ -76,6 +84,7 @@ BUILD_TZFS                EQU   0
 BUILD_80C                 EQU   1
 INCLUDE_ANSITERM          EQU   1                                        ; Include the Ansi terminal emulation processor in the build.
                         ENDIF
+; TZFS Build
                         IF BUILD_VERSION = 4
 BUILD_MZ80A               EQU   0
 BUILD_RFS                 EQU   0

@@ -184,11 +184,17 @@ INIT80CHAR: IF BUILD_RFS = 1
               LD    A, 0FFH
               LD    (SPAGE), A               
 
-              ; Change to 80 character mode.
-              LD    HL,DSPCTL            ; Setup address of display control register latch.
-              LD    A, 128               ; 80 char mode.
-              LD    E,(HL)               ; Dummy operation to enable latch write via multivibrator.
-              LD    (HL), A
+              ; 40/80 Column card upgrade?
+              IF BUILD_KUMA = 0
+                ; Change to 80 character mode.
+                LD  HL,DSPCTL            ; Setup address of display control register latch.
+                LD  A, 128               ; 80 char mode.
+                LD  E,(HL)               ; Dummy operation to enable latch write via multivibrator.
+                LD  (HL), A
+              ELSE  ; Kuma 80 column upgrade?
+                LD  A, 05H               ; Set the INTEN bit to enable 80 column mode.
+                LD  (KEYPF),A
+              ENDIF
              ELSE
               LD    A, ROMBANK0          ; Switch to 40char monitor SA-1510.
               LD    (ROMBK1),A
@@ -223,8 +229,11 @@ INITANSI:   IF INCLUDE_ANSITERM = 1      ; If the ansi terminal emulator is buil
             LD      HL,00000H
             CALL    TIMESET
             ;
-            LD      A,05H                ; Enable interrupts at hardware level, this must be done before switching memory mode.
-            LD      (KEYPF),A
+            ; The Kuma upgrade uses INTEN to switch between 40/80 columns so ignore if target is for a Kuma upgrade.
+            IF BUILD_KUMA = 0
+              LD      A,05H                ; Enable interrupts at hardware level, this must be done before switching memory mode.
+              LD      (KEYPF),A
+            ENDIF
             ;
 MEMSW1:     IF BUILD_TZFS+BUILD_RFSTZ > 0
               LD    A,TZMM_MZ700_2       ; Enable the full 64K memory range before starting BASIC initialisation.
@@ -6711,7 +6720,15 @@ ADD3216:    ADD     HL,BC
 MODE:       LD      HL,KEYPF
             LD      (HL),08AH
             LD      (HL),007H                                            ; Set Motor to Off.
-            LD      (HL),004H                                            ; Disable interrupts by setting INTMSK to 0.
+            IF BUILD_KUMA = 0
+              LD    (HL),004H                                            ; Disable interrupts by setting INTMSK to 0.
+            ELSE
+              IF BUILD_80C = 1
+                LD    (HL),005H                                          ; Set Kuma display to 80 column mode.
+              ELSE
+                LD    (HL),004H                                          ; Set Kuma display to 40 column mode.
+              ENDIF
+            ENDIF
             LD      (HL),001H                                            ; Set VGATE to 1.
             RET     
 

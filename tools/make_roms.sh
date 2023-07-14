@@ -18,6 +18,7 @@
 ##                  April 2021    - Removed the CPM ROM Drive functionality as it provided no benefit
 ##                                  over SD card and SD cards are larger.
 ##                  February 2023 - Updated as RFS extracted into seperate repository.
+##                  June 2023     - Updated to make the Kuma version of the monitor.
 ##
 #########################################################################################################
 ## This source file is free software: you can redistribute it and#or modify

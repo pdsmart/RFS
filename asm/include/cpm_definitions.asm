@@ -10,12 +10,13 @@
 ;- Copyright:       (c) 2019-23 Philip Smart <philip.smart@net2net.org>
 ;-
 ;- History:         Jan 2020 - Initial version.
-;                   May 2020 - Advent of the new RFS PCB v2.0, quite a few changes to accommodate the
-;                              additional and different hardware. The SPI is now onboard the PCB and
-;                              not using the printer interface card.
-;                   Mar 2021 - Changes to work with the RFS v2.1 board.
+;-                  May 2020 - Advent of the new RFS PCB v2.0, quite a few changes to accommodate the
+;-                             additional and different hardware. The SPI is now onboard the PCB and
+;-                             not using the printer interface card.
+;-                  Mar 2021 - Changes to work with the RFS v2.1 board.
 ;-                  Apr 2021 - Removed ROM and RAM Drive functionality as it provided no performance or
 ;-                             use benefit over SD which are much larger and RW.
+;-                  May 2023 - Updates to accommodate RFS use on a FusionX board.
 ;-
 ;--------------------------------------------------------------------------------------------------------
 ;- This source file is free software: you can redistribute it and-or modify
@@ -39,13 +40,19 @@ HW_SPI_ENA              EQU     1                                        ; Set t
 SW_SPI_ENA              EQU     0                                        ; Set to 1 if software SPI is present on the RFS PCB v2 board.
 PP_SPI_ENA              EQU     0                                        ; Set to 1 if using the SPI interface via the Parallel Port, ie. for RFS PCB v1 which doesnt have SPI onboard.
 
-; Build time options, only set to '1' to build, '0' to disable, only 1 can be set to '1'.
+; Build time options, only set to '1' to build, '0' to disable, only set one 40C/80C at a time. Set KUMA 80C option if Kuma upgrade being targetted otherwise will default to 40/80 column card.
 ;                        IF BUILD_VERSION = 0
-BUILD_80C               EQU     1                                        ; Build for an MZ-80A with a 40/80 column card.
-BUILD_40C               EQU     0                                        ; Build for a standard 40 column MZ-80A.
+BUILD_80C               EQU     0                                        ; Build for an MZ-80A with a 40/80 column card.
+BUILD_40C               EQU     1                                        ; Build for a standard 40 column MZ-80A.
+BUILD_KUMA              EQU     0                                        ; Enable support for the Kuma 40/80 column upgrade.
+BUILD_MZ80A             EQU     0                                        ; Build for the Sharp MZ-80A base hardware.
+BUILD_MZ700             EQU     1                                        ; Build for the Sharp MZ-700 base hardware.
+BUILD_MZ1500            EQU     0                                        ; Build for the Sharp MZ-1500 base hardware.
+
 ;                        ENDIF
 ;                        IF BUILD_VERSION = 1
 ;BUILD_80C               EQU     0                                        ; Build for an MZ-80A with a 40/80 column card.
+;BUILD_80C_KUMA          EQU     0                                        ; If set, 80 column mode is provided by the Kuma upgrade and not the 40/80 column card.
 ;BUILD_40C               EQU     1                                        ; Build for a standard 40 column MZ-80A.
 ;                        ENDIF
 
@@ -79,7 +86,7 @@ MAXDISKS                EQU     7                                        ; Max n
 KEYBUFSIZE              EQU     16                                       ; Ensure this is a power of 2, max size 256.
 
 ; Debugging
-ENADEBUG                EQU     0                                        ; Enable debugging logic, 1 = enable, 0 = disable
+ENADEBUG                EQU     1                                        ; Enable debugging logic, 1 = enable, 0 = disable
 
 
 ;-----------------------------------------------

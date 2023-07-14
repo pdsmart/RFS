@@ -18,6 +18,7 @@
 ;-                              processor all operations are done by the Z80 under RFS.
 ;-                  March 2021- Updates to accommodate the RFS v2.1 board along with back porting TZFS
 ;-                              developments.
+;-                  May 2023  - Updates to accommodate RFS use on a FusionX board.
 ;-
 ;--------------------------------------------------------------------------------------------------------
 ;- This source file is free software: you can redistribute it and-or modify
@@ -41,6 +42,8 @@ HW_SPI_ENA              EQU     1                                        ; Set t
 SW_SPI_ENA              EQU     0                                        ; Set to 1 if software SPI is present on the RFS PCB v2 board.
 PP_SPI_ENA              EQU     0                                        ; Set to 1 if using the SPI interface via the Parallel Port, ie. for RFS PCB v1 which doesnt have SPI onboard.
 FUSIONX_ENA             EQU     1                                        ; Set to 1 if using RFS on the tranZPUter FusionX board.
+KUMA80_ENA              EQU     0                                        ; Target has Kuma 40/80 upgrade installed.
+VIDEOMODULE_ENA         EQU     0                                        ; Target has 40/80 column colour video module installed.
 
 ; Debugging
 ENADEBUG                EQU     0                                        ; Enable debugging logic, 1 = enable, 0 = disable

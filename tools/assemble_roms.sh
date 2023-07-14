@@ -14,6 +14,7 @@
 ## History:         August 2018   - Initial script written.
 ##                  March 2021    - Updated to compile different versions of Microsoft BASIC.
 ##                  February 2023 - Updated as RFS extracted into seperate repository.
+##                  June 2023     - Updated to build KUMA version of monitor.
 ##
 #########################################################################################################
 ## This source file is free software: you can redistribute it and#or modify
@@ -34,6 +35,7 @@ ROOTDIR=`pwd | sed 's/\/tools//g'`
 TOOLDIR=${ROOTDIR}/tools
 JARDIR=${ROOTDIR}/tools
 ASM=glass.jar
+# NB Kuma version of SA1510 monitor rom is enabled within the monitor_sa1510.asm or monitor_80c_sa1510.asm file.
 #BUILDROMLIST="MZ80AFI rfs rfs_mrom IPL monitor_SA1510 monitor_80c_SA1510 monitor_mz-1r12 quickdisk_mz-1e05 quickdisk_mz-1e14 monitor_1Z-013A monitor_80c_1Z-013A"
 BUILDROMLIST="monitor_sa1510_hiload monitor_80c_sa1510_hiload monitor_80c_sa1510 mz80afi monitor_sa1510 monitor_80c_sa1510 monitor_1z-013a monitor_80c_1z-013a ipl"
 #BUILDMZFLIST="hi-ramcheck sharpmz-test"
@@ -62,19 +64,19 @@ do
     # Special handling for the 4 version of MS BASIC.
     if [[ ${SRCNAME} = "msbasic_mz80a" ]]; then
         ASMNAME="msbasic.asm"
-        echo "BUILD_VERSION EQU 0" > ${INCDIR}/MSBASIC_BuildVersion.asm
+        echo "BUILD_VERSION EQU 0" > ${INCDIR}/msbasic_buildversion.asm
     elif [[ ${SRCNAME} = "msbasic_rfs40" ]]; then
         ASMNAME="msbasic.asm"
-        echo "BUILD_VERSION EQU 1" > ${INCDIR}/MSBASIC_BuildVersion.asm
+        echo "BUILD_VERSION EQU 1" > ${INCDIR}/msbasic_buildversion.asm
     elif [[ ${SRCNAME} = "msbasic_rfs80" ]]; then
         ASMNAME="msbasic.asm"
-        echo "BUILD_VERSION EQU 2" > ${INCDIR}/MSBASIC_BuildVersion.asm
+        echo "BUILD_VERSION EQU 2" > ${INCDIR}/msbasic_buildversion.asm
     elif [[ ${SRCNAME} = "msbasic_rfstz" ]]; then
         ASMNAME="msbasic.asm"
-        echo "BUILD_VERSION EQU 3" > ${INCDIR}/MSBASIC_BuildVersion.asm
+        echo "BUILD_VERSION EQU 3" > ${INCDIR}/msbasic_buildversion.asm
     elif [[ ${SRCNAME} = "msbasic_tzfs" ]]; then
         ASMNAME="msbasic.asm"
-        echo "BUILD_VERSION EQU 4" > ${INCDIR}/MSBASIC_BuildVersion.asm
+        echo "BUILD_VERSION EQU 4" > ${INCDIR}/msbasic_buildversion.asm
     fi
 
     # Assemble the source.

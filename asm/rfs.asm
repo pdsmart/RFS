@@ -21,6 +21,7 @@
 ;                               or without the K64 I/O processor. RFS wont use the K64 processor all
 ;                               operations are done by the Z80 under RFS.
 ;-                  April 2021- Updates for the v2.1 RFS board.
+;-                  June 2023 - Updates for the Kuma 40/80 upgrade.
 ;-
 ;--------------------------------------------------------------------------------------------------------
 ;- This source file is free software: you can redistribute it and-or modify
@@ -175,22 +176,24 @@ ROMFS_3:    LD      (BNKSELMROM),A                                       ; start
             ; Replacement command processor in place of the SA1510 command processor.
             ;
 MONITOR:    IF FUSIONX_ENA = 0
-              IN      A,(CPLDINFO)                                         ; See if a tranZPUter board is present.
-              AND     0E7H                                                 ; Mask out the CPLD Version and host HW.
-              LD      C,A
-              CP      020H                                                 ; Upper bits specify the version, should be at least 1.
-              JR      C,CHKTZ1
-              AND     007H                                                 ; Get Hardware, should be an MZ-80A for RFS.
-              CP      MODE_MZ80A
-              LD      A,C
-              JR      Z,CHKTZ1
-              XOR     A
-CHKTZ1:       AND     0E0H
+              IN    A,(CPLDINFO)                                         ; See if a tranZPUter board is present.
+              AND   0E7H                                                 ; Mask out the CPLD Version and host HW.
+              LD    C,A
+              CP    020H                                                 ; Upper bits specify the version, should be at least 1.
+              JR    C,CHKTZ1
+              AND   007H                                                 ; Get Hardware, should be an MZ-80A for RFS.
+              CP    MODE_MZ80A
+              LD    A,C
+              JR    Z,CHKTZ1
+              XOR   A
+CHKTZ1:       AND   0E0H
             ELSE
-              XOR     A
+              XOR   A
             ENDIF
             LD      (TZPU), A                                            ; Flag = 0 if no tranZPUter present otherwise contains version (1 - 15).
-            LD      HL,DSPCTL                                            ; Setup address of display control register latch.
+            IF      VIDEOMODULE_ENA = 1
+              LD    HL,DSPCTL                                            ; Setup address of display control register latch.
+            ENDIF
             ;
             XOR     A                                                    ; Set the initial SDCFS active drive number.
             LD      (SDDRIVENO),A
@@ -201,15 +204,28 @@ CHKTZ1:       AND     0E0H
             CP      0
             JR      NZ, SIGNON
             ;
-SET40CHAR:  LD      A, 0                                                 ; Using MROM in Bank 0 = 40 char mode.
-            LD      E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
-            LD      (HL), A
+SET40CHAR:  IF      VIDEOMODULE_ENA = 1
+              XOR   A                                                    ; Using MROM in Bank 0 = 40 char mode.
+              LD    E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
+              LD    (HL), A
+            ENDIF
+            IF      KUMA80_ENA = 1                                       ; Kuma modification toggles the INTEN bit PC2 of the 8255 to switch mode, 0 = 40 column.
+              LD    A,04H
+              LD    (KEYPF),A
+            ENDIF
+            XOR     A
             LD      (SCRNMODE), A
             LD      (SPAGE), A                                           ; Allow MZ80A scrolling
             JR      SIGNON
-SET80CHAR:  LD      A, 128                                               ; Using MROM in Bank 1 = 80 char mode.
-            LD      E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
-            LD      (HL), A
+SET80CHAR:  IF      VIDEOMODULE_ENA = 1
+              LD    A, 128                                               ; Using MROM in Bank 1 = 80 char mode.
+              LD    E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
+              LD    (HL), A
+            ENDIF
+            IF      KUMA80_ENA = 1                                       ; Kuma modification toggles the INTEN bit PC2 of the 8255 to switch mode, 1 = 80 column.
+              LD    A,05H
+              LD    (KEYPF),A
+            ENDIF
             LD      A, 1
             LD      (SCRNMODE), A
             LD      A, 0FFH
@@ -500,19 +516,31 @@ HIROM:      LD      A, (MEMSW)                                           ; Swap 
 SETMODE40:  LD      A, ROMBANK0                                          ; Switch to 40Char monitor.
             LD      (ROMBK1),A
             LD      (BNKSELMROM),A
-            LD      HL,DSPCTL                                            ; Setup address of display control register latch.
-            LD      A, 0
-            LD      E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
-            LD      (HL), A
+            IF      VIDEOMODULE_ENA = 1
+              LD    HL,DSPCTL                                            ; Setup address of display control register latch.
+              LD    A, 0
+              LD    E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
+              LD    (HL), A
+            ENDIF
+            IF      KUMA80_ENA = 1                                       ; Kuma80 modification uses INTEN on PC@ of 8255, 0 = 40 column.
+              LD    A,04H
+              LD    (KEYPF),A
+            ENDIF
             JP      MONIT
  
 SETMODE80:  LD      A, ROMBANK1                                          ; Switch to 80char monitor.
             LD      (ROMBK1),A
             LD      (BNKSELMROM),A
-            LD      HL,DSPCTL                                            ; Setup address of display control register latch.
-            LD      A, 128
-            LD      E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
-            LD      (HL), A
+            IF      VIDEOMODULE_ENA = 1
+              LD    HL,DSPCTL                                            ; Setup address of display control register latch.
+              LD    A, 128
+              LD    E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
+              LD    (HL), A
+            ENDIF
+            IF      KUMA80_ENA = 1                                       ; Kuma80 modification uses INTEN on PC@ of 8255, 0 = 40 column.
+              LD    A,05H
+              LD    (KEYPF),A
+            ENDIF
             JP      MONIT
 
 NOTZPU:     LD      DE,MSGNOTZINST                                        ; No tranZPUter installed.
