@@ -34,6 +34,12 @@
 ;- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;--------------------------------------------------------------------------------------------------------
 
+           IF     BUILD_SFD700 = 1
+            ORG    0E000H
+            ALIGN  UROMADDR
+             
+
+            ENDIF
 
             ;======================================
             ;
@@ -46,20 +52,7 @@
             ; Common code spanning all banks.
             ;--------------------------------
             NOP
-            LD      B,16                                                     ; If we read the bank control reset register 15 times then this will enable bank control and then the 16th read will reset all bank control registers to default.
-ROMFS5_0:   LD      A,(BNKCTRLRST)
-            DJNZ    ROMFS5_0                                                 ; Apply the default number of coded latch reads to enable the bank control registers.
-            LD      A,BNKCTRLDEF                                             ; Set coded latch, SDCS high, BBMOSI to high and BBCLK to high which enables SDCLK.
-            LD      (BNKCTRL),A
-            NOP
-            NOP
-            NOP
-            XOR     A                                                        ; We shouldnt arrive here after a reset, if we do, select UROM bank 0
-            LD      (BNKSELMROM),A
-            NOP
-            NOP
-            NOP
-            LD      (BNKSELUSER),A                                           ; and start up - ie. SA1510 Monitor - this occurs as User Bank 0 is enabled and the jmp to 0 is coded in it.
+            HWSELROM2                                                         ; Select the first ROM page.
             ;
             ; No mans land... this should have switched to Bank 0 and at this point there is a jump to 00000H.
             JP      00000H                                                   ; This is for safety!!
@@ -115,10 +108,10 @@ BKSW5_0:    PUSH    HL                                                       ; P
             LD      HL, BKSWRET5                                             ; Place bank switchers return address on stack.
             EX      (SP),HL
             LD      (TMPSTACKP),SP                                           ; Save the stack pointer as some old code corrupts it.
-            LD      (BNKSELUSER), A                                          ; Repeat the bank switch B times to enable the bank control register and set its value.
+            BNKSWSEL
             JP      (HL)                                                     ; Jump to required function.
 BKSWRET5:   POP     AF                                                       ; Get bank which called us.
-            LD      (BNKSELUSER), A                                          ; Return to that bank.
+            BNKSWSELRET
             POP     AF
             RET  
 
@@ -205,6 +198,13 @@ SHARPTOASC: DB      000H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H
             DB      020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H ; 0xEF
             DB      020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H,  020H ; 0xFF
 
-            ALIGN   0EFF8h
-            ORG     0EFF8h
-            DB      0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh
+            ; RomDisk, top 8 bytes are used by the control registers when enabled so dont use the space.
+            IF      BUILD_ROMDISK = 1
+              ALIGN 0EFF8h
+              ORG   0EFF8h
+              DB    0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh
+            ENDIF
+
+            IF      BUILD_SFD700 = 1
+              ALIGN 0F000H
+            ENDIF

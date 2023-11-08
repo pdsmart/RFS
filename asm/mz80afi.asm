@@ -10,6 +10,7 @@
 i          ; Bring in additional resources.
            INCLUDE "rfs_definitions.asm"
            INCLUDE "macros.asm"
+SS:        EQU      00089h
 
 
            ;======================================

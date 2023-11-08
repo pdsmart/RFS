@@ -42,11 +42,11 @@ PP_SPI_ENA              EQU     0                                        ; Set t
 
 ; Build time options, only set to '1' to build, '0' to disable, only set one 40C/80C at a time. Set KUMA 80C option if Kuma upgrade being targetted otherwise will default to 40/80 column card.
 ;                        IF BUILD_VERSION = 0
-BUILD_80C               EQU     0                                        ; Build for an MZ-80A with a 40/80 column card.
-BUILD_40C               EQU     1                                        ; Build for a standard 40 column MZ-80A.
+BUILD_80C               EQU     1                                        ; Build for an MZ-80A with a 40/80 column card.
+BUILD_40C               EQU     0                                        ; Build for a standard 40 column MZ-80A.
 BUILD_KUMA              EQU     0                                        ; Enable support for the Kuma 40/80 column upgrade.
-BUILD_MZ80A             EQU     0                                        ; Build for the Sharp MZ-80A base hardware.
-BUILD_MZ700             EQU     1                                        ; Build for the Sharp MZ-700 base hardware.
+BUILD_MZ80A             EQU     1                                        ; Build for the Sharp MZ-80A base hardware.
+BUILD_MZ700             EQU     0                                        ; Build for the Sharp MZ-700 base hardware.
 BUILD_MZ1500            EQU     0                                        ; Build for the Sharp MZ-1500 base hardware.
 
 ;                        ENDIF

@@ -41,9 +41,13 @@
 HW_SPI_ENA              EQU     1                                        ; Set to 1 if hardware SPI is present on the RFS PCB v2 board.
 SW_SPI_ENA              EQU     0                                        ; Set to 1 if software SPI is present on the RFS PCB v2 board.
 PP_SPI_ENA              EQU     0                                        ; Set to 1 if using the SPI interface via the Parallel Port, ie. for RFS PCB v1 which doesnt have SPI onboard.
-FUSIONX_ENA             EQU     1                                        ; Set to 1 if using RFS on the tranZPUter FusionX board.
+FUSIONX_ENA             EQU     0                                        ; Set to 1 if using RFS on the tranZPUter FusionX board.
 KUMA80_ENA              EQU     0                                        ; Target has Kuma 40/80 upgrade installed.
 VIDEOMODULE_ENA         EQU     0                                        ; Target has 40/80 column colour video module installed.
+BUILD_ROMDISK           EQU     0                                        ; RFS is built for the MZ-80A RomDisk card.
+BUILD_SFD700            EQU     1                                        ; RFS is built for the SFD700 Floppy Disk Controller.
+;BUILD_MZ80A             EQU     0                                        ; RFS is customised to operate on an MZ-80A.
+;BUILD_MZ700             EQU     1                                        ; RFS is customised to operate on an MZ-700.
 
 ; Debugging
 ENADEBUG                EQU     0                                        ; Enable debugging logic, 1 = enable, 0 = disable
@@ -53,9 +57,14 @@ ENADEBUG                EQU     0                                        ; Enabl
 ;-----------------------------------------------
 UROMADDR                EQU     0E800H                                   ; Start of User ROM Address space.
 UROMBSTBL               EQU     UROMADDR + 020H                          ; Entry point to the bank switching table.
-RFSJMPTABLE             EQU     UROMADDR + 00080H                        ; Start of jump table.
+RFSJMPTABLE             EQU     UROMADDR + 000B0H                        ; Start of jump table.
 FDCROMADDR              EQU     0F000H
 
+                        IF BUILD_SFD700 = 1
+BNKDEFMROM_MZ80A          EQU   0                                        ; Default MROM (FDC) selected, 1st 4k slot..
+BNKDEFMROM_MZ700          EQU   1                                        ; Default MROM (FDC) selected, 1st 4k slot..
+BNKDEFUROM                EQU   2                                        ; Default UROM (RFS) selected, starts at 8K.
+                        ENDIF
 
 ;-----------------------------------------------
 ; Common character definitions.
@@ -143,30 +152,24 @@ BRKEY                   EQU     0001Eh
 MELDY                   EQU     00030h
 ?TMST                   EQU     00033h
 MONIT:                  EQU     00000h
-SS:                     EQU     00089h
-ST1:                    EQU     00095h
 HLHEX                   EQU     00410h
 _2HEX                   EQU     0041Fh
-?MODE:                  EQU     0074DH
-?KEY                    EQU     008CAh
-PRNT3                   EQU     0096Ch
-?ADCN                   EQU     00BB9h
-?DACN                   EQU     00BCEh
-?DSP:                   EQU     00DB5H
-?BLNK                   EQU     00DA6h
-?DPCT                   EQU     00DDCh
 PRTHL:                  EQU     003BAh
 PRTHX:                  EQU     003C3h
-HEX:                    EQU     003F9h
+PRNT3                   EQU     0096Ch
+?ADCN                   EQU     00BB9h
+?DSP:                   EQU     00DB5H
 DPCT:                   EQU     00DDCh
-DLY12:                  EQU     00DA7h
-DLY12A:                 EQU     00DAAh
-?RSTR1:                 EQU     00EE6h
-MOTOR:                  EQU     006A3H
+HEX:                    EQU     003F9h
 CKSUM:                  EQU     0071AH
 GAP:                    EQU     0077AH
-WTAPE:                  EQU     00485H
 MSTOP:                  EQU     00700H
+MOTOR80A:               EQU     006A3H
+MOTOR700:               EQU     0069FH
+WTAPE80A:               EQU     00485H
+WTAPE700:               EQU     0048AH
+
+DLY12:                    EQU   00DA7h
 
 ;-----------------------------------------------
 ; Memory mapped ports in hardware.
@@ -192,6 +195,9 @@ INVDSP:                 EQU     0E014H
 NRMDSP:                 EQU     0E015H
 SCLDSP:                 EQU     0E200H
 SCLBASE:                EQU     0E2H
+;
+; RomDisk memory mapped ports
+;
 BNKCTRLRST:             EQU     0EFF8H                                   ; Bank control reset, returns all registers to power up default.
 BNKCTRLDIS:             EQU     0EFF9H                                   ; Disable bank control registers by resetting the coded latch.
 HWSPIDATA:              EQU     0EFFBH                                   ; Hardware SPI Data register (read/write).
@@ -225,6 +231,8 @@ BNKCTRLDEF              EQU     BBMOSI+SDCS+BBCLK                        ; Defau
 SPI_OUT                 EQU     0FFH
 SPI_IN                  EQU     0FEH
 ;
+; RomDisk
+;
 DOUT_LOW                EQU     000H
 DOUT_HIGH               EQU     004H
 DOUT_MASK               EQU     004H
@@ -235,6 +243,8 @@ CLOCK_HIGH              EQU     002H
 CLOCK_MASK              EQU     0FDH
 CS_LOW                  EQU     000H
 CS_HIGH                 EQU     001H
+;
+; tranZPUter SW
 ;
 MMCFG                   EQU     060H                                     ; Memory management configuration latch.
 SETXMHZ                 EQU     062H                                     ; Select the alternate clock frequency.
@@ -255,6 +265,22 @@ MMIO4                   EQU     0E4H                                     ; MZ-70
 MMIO5                   EQU     0E5H                                     ; MZ-700/MZ-800 Memory Management Set 5
 MMIO6                   EQU     0E6H                                     ; MZ-700/MZ-800 Memory Management Set 6
 MMIO7                   EQU     0E7H                                     ; MZ-700/MZ-800 Memory Management Set 7
+;
+; SFD700
+;
+REG_EXXX                EQU     060H                                     ; A write copies D6:0 into the EXXX page address register to set a uniform 4K block in the region E300:EFFF window.
+REG_FXXX                EQU     061H                                     ; A write copies D6:0 into the FXXX page address register to set a uniform 4k block in the region F000:FFFF.
+REG_MEMMODE             EQU     062H                                     ; A write with D0 = low enables FlashROM, D0 = high enables RAM.
+SFD700_MODE             EQU     063H                                     ; FDC Interface card configured target mode.
+FDC_CMD                 EQU     0D8H                                     ; WD1773 Command Register.
+FDC_STATUS              EQU     0D8H                                     ; WD1773 Status Register.
+FDC_TRACK               EQU     0D9H                                     ; WD1773 Track Register.
+FDC_SECTOR              EQU     0DAH                                     ; WD1773 Sector Register.
+FDC_DATA                EQU     0DBH                                     ; WD1773 Data Register.
+FDC_DRIVE               EQU     0DCH                                     ; FDC Drive Select. D2 = 1 to enable, D1:0 = FDC number. D7 = Motor Enable.
+FDC_SIDE                EQU     0DDH                                     ; FDC Side Select. D0 = Side.
+FDC_DDEN                EQU     0DEH                                     ; FDC Double Density Enable.
+FDC_IRQ                 EQU     0DFH                                     ; A write enables WD1773 interrupts, a read disables WD1773 interrupts.
 
 ;-----------------------------------------------
 ; CPLD Configuration constants.
@@ -323,6 +349,13 @@ RFSSECTSZ               EQU     256
 MROMSIZE                EQU     4096
 UROMSIZE                EQU     2048
 FNSIZE                  EQU     17
+                        IF BUILD_ROMDISK = 1
+MROMSTART:                EQU   00000H
+                        ENDIF
+                        IF BUILD_SFD700 = 1
+MROMSTART:                EQU   0F000H
+                        ENDIF
+
 ;
 ; Monitor ROM Jump Table definitions.
 ;
@@ -342,19 +375,34 @@ MROMLOAD:               EQU     MROMJMPTBL + 00006H
 ;-----------------------------------------------
 MROMPAGES               EQU     8
 USRROMPAGES             EQU     12                                       ; Monitor ROM         :  User ROM
-ROMBANK0                EQU     0                                        ; MROM SA1510 40 Char :  RFS Bank 0 - Main RFS Entry point and functions.
-ROMBANK1                EQU     1                                        ; MROM SA1510 80 Char :  RFS Bank 1 - Floppy disk controller and utilities.
-ROMBANK2                EQU     2                                        ; CPM 2.2 CBIOS       :  RFS Bank 2 - SD Card controller and utilities.
-ROMBANK3                EQU     3                                        ; RFS Utilities       :  RFS Bank 3 - Cmdline tools (Memory, Printer, Help)
-ROMBANK4                EQU     4                                        ; MZ700 1Z-013A 40C   :  RFS Bank 4 - CMT Utilities.
-ROMBANK5                EQU     5                                        ; MZ700-1Z-013A 80C   :  RFS Bank 5
-ROMBANK6                EQU     6                                        ; MZ-80B IPL          :  RFS Bank 6
-ROMBANK7                EQU     7                                        ; Free                :  RFS Bank 7 - Memory and timer test utilities.
-ROMBANK8                EQU     8                                        ;                     :  CBIOS Bank 1 - Utilities
-ROMBANK9                EQU     9                                        ;                     :  CBIOS Bank 2 - Screen / ANSI Terminal
-ROMBANK10               EQU     10                                       ;                     :  CBIOS Bank 3 - SD Card
-ROMBANK11               EQU     11                                       ;                     :  CBIOS Bank 4 - Floppy disk controller.
-
+                        IF BUILD_ROMDISK = 1
+ROMBANK0                  EQU   0                                        ; MROM SA1510 40 Char :  RFS Bank 0 - Main RFS Entry point and functions.
+ROMBANK1                  EQU   1                                        ; MROM SA1510 80 Char :  RFS Bank 1 - Floppy disk controller and utilities.
+ROMBANK2                  EQU   2                                        ; CPM 2.2 CBIOS       :  RFS Bank 2 - SD Card controller and utilities.
+ROMBANK3                  EQU   3                                        ; RFS Utilities       :  RFS Bank 3 - Cmdline tools (Memory, Printer, Help)
+ROMBANK4                  EQU   4                                        ; MZ700 1Z-013A 40C   :  RFS Bank 4 - CMT Utilities.
+ROMBANK5                  EQU   5                                        ; MZ700-1Z-013A 80C   :  RFS Bank 5
+ROMBANK6                  EQU   6                                        ; MZ-80B IPL          :  RFS Bank 6
+ROMBANK7                  EQU   7                                        ; Free                :  RFS Bank 7 - Memory and timer test utilities.
+ROMBANK8                  EQU   8                                        ;                     :  CBIOS Bank 1 - Utilities
+ROMBANK9                  EQU   9                                        ;                     :  CBIOS Bank 2 - Screen / ANSI Terminal
+ROMBANK10                 EQU   10                                       ;                     :  CBIOS Bank 3 - SD Card
+ROMBANK11                 EQU   11                                       ;                     :  CBIOS Bank 4 - Floppy disk controller.
+                        ENDIF
+                        IF BUILD_SFD700 = 1
+ROMBANK0                  EQU   0  + BNKDEFUROM                          ;                     :  RFS Bank 0 - Main RFS Entry point and functions.
+ROMBANK1                  EQU   1  + BNKDEFUROM                          ;                     :  RFS Bank 1 - Floppy disk controller and utilities.
+ROMBANK2                  EQU   2  + BNKDEFUROM                          ;                     :  RFS Bank 2 - SD Card controller and utilities.
+ROMBANK3                  EQU   3  + BNKDEFUROM                          ;                     :  RFS Bank 3 - Cmdline tools (Memory, Printer, Help)
+ROMBANK4                  EQU   4  + BNKDEFUROM                          ;                     :  RFS Bank 4 - CMT Utilities.
+ROMBANK5                  EQU   5  + BNKDEFUROM                          ;                     :  RFS Bank 5
+ROMBANK6                  EQU   6  + BNKDEFUROM                          ;                     :  RFS Bank 6
+ROMBANK7                  EQU   8  + BNKDEFUROM                          ;                     :  RFS Bank 7 - Memory and timer test utilities.
+ROMBANK8                  EQU   10  + BNKDEFUROM                          ;                     :  CBIOS Bank 1 - Utilities
+ROMBANK9                  EQU   11 + BNKDEFUROM                          ;                     :  CBIOS Bank 2 - Screen / ANSI Terminal
+ROMBANK10                 EQU   12 + BNKDEFUROM                          ;                     :  CBIOS Bank 3 - SD Card
+ROMBANK11                 EQU   13 + BNKDEFUROM                          ;                     :  CBIOS Bank 4 - Floppy disk controller.
+                        ENDIF
 
 ; MMC/SD command (SPI mode)
 CMD0                    EQU     64 + 0                                   ; GO_IDLE_STATE 

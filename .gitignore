@@ -201,3 +201,7 @@ dz80.ini
 full.asm
 full.bin
 MZ800_IOCS.ref
+asm/c2
+asm/sa1510.asm.prekuma
+roms/test.rom
+

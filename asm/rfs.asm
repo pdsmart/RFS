@@ -10,18 +10,21 @@
 ;- Credits:         
 ;- Copyright:       (c) 2018-2023 Philip Smart <philip.smart@net2net.org>
 ;-
-;- History:         July 2019 - Merged 2 utilities to create this compilation.
-;                   May 2020  - Bank switch changes with release of v2 pcb with coded latch. The coded
+;- History:   v1.0  July 2019 - Merged 2 utilities to create this compilation.
+;             v2.0  May 2020  - Bank switch changes with release of v2 pcb with coded latch. The coded
 ;                               latch adds additional instruction overhead as the control latches share
 ;                               the same address space as the Flash RAMS thus the extra hardware to
 ;                               only enable the control registers if a fixed number of reads is made
 ;                               into the upper 8 bytes which normally wouldnt occur. Caveat - ensure
 ;                               that no loop instruction is ever placed into EFF8H - EFFFH.
-;                   July 2020 - Updated for the v2.1 hardware. RFS can run with a tranZPUter board with
+;             v2.0  July 2020 - Updated for the v2.1 hardware. RFS can run with a tranZPUter board with
 ;                               or without the K64 I/O processor. RFS wont use the K64 processor all
 ;                               operations are done by the Z80 under RFS.
-;-                  April 2021- Updates for the v2.1 RFS board.
-;-                  June 2023 - Updates for the Kuma 40/80 upgrade.
+;-            v2.1  April 2021- Updates for the v2.1 RFS board.
+;-            v2.2  June 2023 - Updates for the Kuma 40/80 upgrade and FusionX.
+;-            v2.3  Aug 2023  - Updates to make RFS run under the SFD700 Floppy Disk Interface board.
+;-                              UROM remains the same, a 2K paged ROM, MROM is located at F000 when
+;-                              RFS is built for the SFD700.
 ;-
 ;--------------------------------------------------------------------------------------------------------
 ;- This source file is free software: you can redistribute it and-or modify
@@ -41,6 +44,101 @@
             ; Bring in additional resources.
             INCLUDE "rfs_definitions.asm"
 
+            IF      BUILD_SFD700 = 1
+              ORG   0E000H
+              ALIGN 0E300H
+            ENDIF
+
+            ; Monitor command table. This table contains the list of recognised commands along with the 
+            ; handler function and bank in which it is located.
+            ;
+            ;         7       6     5:3    2:0
+            ;         END   MATCH  BANK   SIZE 
+CMDTABLE2: IF BUILD_SFD700 = 1
+              DB    000H | 000H | 038H | 003H
+              DB    "ASM"                                                ; Assembler.
+              DW    ASM_MAIN
+              DB    000H | 000H | 000H | 005H
+              DB    "BASIC"                                              ; Load and run BASIC SA-5510.
+              DW    LOADBASIC
+              DB    000H | 000H | 020H | 001H
+              DB    'B'                                                  ; Bell.
+              DW    SGX
+              DB    000H | 000H | 000H | 003H
+              DB    "CPM"                                                ; Load and run CPM.
+              DW    LOADCPM
+              DB    000H | 000H | 018H | 002H
+              DB    "CP"                                                 ; Copy Memory.
+              DW    MCOPY
+              DB    000H | 000H | 018H | 001H
+              DB    'C'                                                  ; Clear Memory.
+              DW    INITMEMX
+              DB    000H | 000H | 038H | 004H
+              DB    "DASM"                                               ; Disassembler.
+              DW    DASM_MAIN
+              DB    000H | 000H | 018H | 001H
+              DB    'D'                                                  ; Dump Memory.
+              DW    DUMPX
+              DB    000H | 000H | 008H | 001H
+              DB    'F'                                                  ; RFS Floppy boot code.
+              DW    FLOPPY
+              DB    000H | 000H | 008H | 001H
+              DB    0AAH                                                 ; Original Floppy boot code.
+              DW    FDCK
+              DB    000H | 000H | 030H | 001H
+              DB    'H'                                                  ; Help screen.
+              DW    HELP
+              DB    000H | 000H | 000H | 002H
+              DB    "IR"                                                 ; List ROM directory.
+              DW    DIRROM
+              DB    000H | 000H | 000H | 001H
+              DB    'J'                                                  ; Jump to address.
+              DW    GOTOX
+              DB    000H | 000H | 020H | 004H
+              DB    "LTNX"                                               ; Load from CMT without auto execution.
+              DW    LOADTAPENX
+              DB    000H | 000H | 020H | 002H
+              DB    "LT"                                                 ; Load from CMT
+              DW    LOADTAPE
+              DB    000H | 000H | 000H | 004H
+              DB    "LRNX"                                               ; Load from ROM without auto execution.
+              DW    LOADROMNX
+              DB    000H | 000H | 000H | 002H
+              DB    "LR"                                                 ; Load from ROM
+              DW    LOADROM
+              DB    000H | 000H | 020H | 001H
+              DB    "L"                                                  ; Original Load from CMT
+              DW    LOADTAPE
+              DB    000H | 000H | 018H | 001H
+              DB    'M'                                                  ; Edit Memory.
+              DW    MCORX
+              DB    000H | 000H | 018H | 001H
+              DB    'P'                                                  ; Printer test.
+              DW    PTESTX
+              DB    000H | 000H | 020H | 001H
+              DB    'R'                                                  ; Memory test.
+              DW    MEMTEST
+              DB    000H | 000H | 020H | 002H
+              DB    "ST"                                                 ; Save to CMT
+              DW    SAVEX
+              DB    000H | 000H | 020H | 001H
+              DB    'S'                                                  ; Save to CMT
+              DW    SAVEX
+              DB    000H | 000H | 000H | 004H
+              DB    "TEST"                                               ; A test function used in debugging.
+              DW    LOCALTEST
+              DB    000H | 000H | 020H | 001H
+              DB    'T'                                                  ; Timer test.
+              DW    TIMERTST
+              DB    000H | 000H | 000H | 001H
+              DB    'V'                                                  ; Verify CMT Save.
+              DW    VRFYX
+              DB    080H | 000H | 000H | 001H
+            ENDIF
+
+            IF      BUILD_SFD700 = 1
+              ALIGN UROMADDR
+            ENDIF
 
             ;============================================================
             ;
@@ -49,20 +147,11 @@
             ;============================================================
             ORG     UROMADDR
 
-
             ;--------------------------------
             ; Common code spanning all banks.
             ;--------------------------------
 ROMFS:      NOP
-            LD      B,16                                                 ; If we read the bank control reset register 15 times then this will enable bank control and then the 16th read will reset all bank control registers to default.
-ROMFS_0:    LD      A,(BNKCTRLRST)
-            DJNZ    ROMFS_0                                              ; Apply the default number of coded latch reads to enable the bank control registers.
-            LD      A,BNKCTRLDEF                                         ; Set coded latch, SDCS high, BBMOSI to high and BBCLK to high which enables SDCLK.
-            LD      (BNKCTRL),A
-            LD      (ROMCTL),A                                           ; Save to memory the value in the bank control register - this register is used for SPI etc so need to remember its setting.
-            XOR     A                                                    ; We shouldnt arrive here after a reset, if we do, select UROM bank 0
-            LD      (BNKSELMROM),A
-            LD      (BNKSELUSER),A                                       ; and start up - ie. SA1510 Monitor - this occurs as User Bank 0 is enabled and the jmp to 0 is coded in it.
+            HWSELROM                                                     ; Select the first ROM.
             JP      ROMFS_1                                              ; Skip the reset vector.
             JP      00000H                                               ; Other banks will switch at this point thus forcing a full reset.
 
@@ -117,10 +206,10 @@ BKSW0_0:    PUSH    HL                                                   ; Place
             LD      HL, BKSWRET0                                         ; Place bank switchers return address on stack.
             EX      (SP),HL
             LD      (TMPSTACKP),SP                                       ; Save the stack pointer as some old code corrupts it.
-            LD      (BNKSELUSER), A                                      ; Repeat the bank switch B times to enable the bank control register and set its value.
+            BNKSWSEL
             JP      (HL)                                                 ; Jump to required function.
 BKSWRET0:   POP     AF                                                   ; Get bank which called us.
-            LD      (BNKSELUSER), A                                      ; Return to that bank.
+            BNKSWSELRET
             POP     AF
             RET                                                          ; Return to caller.
 
@@ -162,12 +251,11 @@ ROMFS_1:
 ROMFS_2:    LD      (HL),A
             INC     HL
             DJNZ    ROMFS_2              
-            LD      A,BNKCTRLDEF                                         ; Set coded latch, SDCS high, BBMOSI to high and BBCLK to high which enables SDCLK.
-            LD      (ROMCTL),A                                           ; Save to memory the value in the bank control register - this register is used for SPI etc so need to remember its setting.
-            LD      A,(ROMBK1)
-ROMFS_3:    LD      (BNKSELMROM),A                                       ; start up.
+            SETCODELTCH                                                  ; On RomDisk setup coded latch to default.
+            LD      A, (ROMBK1)
+ROMFS_3:    HWSELMROM                                                    ; start up.
             LD      A, (ROMBK2)
-            LD      (BNKSELUSER),A
+            HWSELUROM
 
             ;-------------------------------------------------------------------------------
             ; START OF RFS INITIALISATION AND COMMAND ENTRY PROCESSOR FUNCTIONALITY.
@@ -175,7 +263,7 @@ ROMFS_3:    LD      (BNKSELMROM),A                                       ; start
             ;
             ; Replacement command processor in place of the SA1510 command processor.
             ;
-MONITOR:    IF FUSIONX_ENA = 0
+MONITOR:    IF FUSIONX_ENA+BUILD_SFD700 = 0
               IN    A,(CPLDINFO)                                         ; See if a tranZPUter board is present.
               AND   0E7H                                                 ; Mask out the CPLD Version and host HW.
               LD    C,A
@@ -198,11 +286,15 @@ CHKTZ1:       AND   0E0H
             XOR     A                                                    ; Set the initial SDCFS active drive number.
             LD      (SDDRIVENO),A
             ;
-            LD      A, (ROMBK1)
-            CP      1
-            JR      Z, SET80CHAR
-            CP      0
-            JR      NZ, SIGNON
+            IF      BUILD_ROMDISK = 1
+              LD    A, (ROMBK1)                                          ; Is the 80column MZ-80A monitor active? Yes, set display as 80col.
+              CP    1
+              JR    Z, SET80CHAR
+              CP    0
+              JR    NZ, SIGNON
+            ENDIF
+            IF      BUILD_SFD700 = 1                                     ; Ensure in 40 column mode.
+            ENDIF
             ;
 SET40CHAR:  IF      VIDEOMODULE_ENA = 1
               XOR   A                                                    ; Using MROM in Bank 0 = 40 char mode.
@@ -249,21 +341,23 @@ SIGNON3:    LD      HL,PRINTMSG
             ; JR ST1X
 
             ; Initialise SD card, report any errors.
-            LD      HL, SDINIT                                           ; SD Card Initialisation
-            CALL    BKSW0to2                                             ; Call the initialisation routine.
-            LD      A,L
-            OR      A                                                    ; 0 = No error.
-            JR      Z,ST1X
+            IF      BUILD_ROMDISK = 1
+              LD    HL, SDINIT                                           ; SD Card Initialisation
+              CALL  BKSW0to2                                             ; Call the initialisation routine.
+              LD    A,L
+              OR    A                                                    ; 0 = No error.
+              JR    Z,ST1X
 
-            ; Place error code in C to print as a number and report with the error message.
-            ADD     A,'0'
-            LD      C,A
-            LD      DE,MSGSDINITER
-            LD      HL,PRINTMSG
-            CALL    BKSW0to6
+              ; Place error code in C to print as a number and report with the error message.
+              ADD   A,'0'
+              LD    C,A
+              LD    DE,MSGSDINITER
+              LD    HL,PRINTMSG
+              CALL  BKSW0to6
+            ENDIF
 
             ; Command processor, table based.
-            ; A line is inpt then a comparison made with entries in the table. If a match is found then the bank and function
+            ; A line is input then a comparison made with entries in the table. If a match is found then the bank and function
             ; address are extracted and a call to the function @ given bank made. The commands can be of variable length
             ; but important to not that longer commands using the same letters as shorter commands must appear first in the table.
             ;
@@ -290,7 +384,12 @@ ST1X:       CALL    NL                                                   ; Comma
             ;
 CMDCMP:     XOR     A                                                    ; Clear the result variable used by interbank calls. Some functions set this variable and we act on it.
             LD      (RESULT),A
-            LD      HL,CMDTABLE
+            IF      BUILD_ROMDISK = 1
+              LD    HL,CMDTABLE
+            ENDIF
+            IF      BUILD_SFD700 = 1
+              LD    HL,CMDTABLE2
+            ENDIF
 CMDCMP0:    LD      DE,BUFER+1                                           ; First command byte after the * prompt.
             LD      A,(HL)
             CP      000H
@@ -348,7 +447,12 @@ CMDCMP6:    LD      DE,CMDCMPEND                                         ; Put r
             LD      DE,(TMPADR)                                          ; For the current bank, just jump to the function.
             JP      (HL)
 
-CMDNOCMP:   LD      DE,MSGBADCMD
+CMDNOCMP:   LD      A,(BUFER+1)                                          ; If nothing was entered, ignore line otherwise print questions to show command wasnt recognised.
+            OR      A
+            JR      Z,CMDCMPEND
+            CP      00DH
+            JR      Z,CMDCMPEND
+            LD      DE,MSGBADCMD
             LD      HL,PRINTMSG
             CALL    BKSW0to6
 CMDCMPEND:  LD      A,(RESULT)
@@ -362,115 +466,117 @@ CMDCMPEND:  LD      A,(RESULT)
             ;
             ;         7       6     5:3    2:0
             ;         END   MATCH  BANK   SIZE 
-CMDTABLE:   DB      000H | 000H | 000H | 002H                            ; Bit 2:0 = Command Size, 5:3 = Bank, 6 = Command match, 7 = Command table end.
-            DB      "40"                                                 ; 40 Char screen mode.
-            DW      SETMODE40
-            DB      000H | 000H | 000H | 002H
-            DB      "80"                                                 ; 80 Char screen mode.
-            DW      SETMODE80
-           ;DB      000H | 000H | 000H | 004H
-           ;DB      "7008"                                               ; Switch to 80 column MZ700 mode.
-           ;DW      SETMODE7008
-           ;DB      000H | 000H | 000H | 003H
-           ;DB      "700"                                                ; Switch to 40 column MZ700 mode.
-           ;DW      SETMODE700
-            DB      000H | 000H | 000H | 005H
-            DB      "BASIC"                                              ; Load and run BASIC SA-5510.
-            DW      LOADBASIC
-            DB      000H | 000H | 020H | 001H
-            DB      'B'                                                  ; Bell.
-            DW      SGX
-            DB      000H | 000H | 000H | 003H
-            DB      "CPM"                                                ; Load and run CPM.
-            DW      LOADCPM
-            DB      000H | 000H | 018H | 002H
-            DB      "CP"                                                 ; Copy Memory.
-            DW      MCOPY
-            DB      000H | 000H | 018H | 001H
-            DB      'C'                                                  ; Clear Memory.
-            DW      INITMEMX
-            DB      000H | 000H | 018H | 001H
-            DB      'D'                                                  ; Dump Memory.
-            DW      DUMPX
-            DB      000H | 000H | 010H | 002H
-            DB      "EC"                                                 ; Erase file.
-            DW      ERASESD
-            DB      000H | 000H | 008H | 001H
-            DB      'F'                                                  ; RFS Floppy boot code.
-            DW      FLOPPY
-            DB      000H | 000H | 008H | 001H
-            DB      0AAH                                                 ; Original Floppy boot code.
-            DW      FDCK
-            DB      000H | 000H | 030H | 001H
-            DB      'H'                                                  ; Help screen.
-            DW      HELP
-            DB      000H | 000H | 000H | 002H
-            DB      "IR"                                                 ; List ROM directory.
-            DW      DIRROM
-            DB      000H | 000H | 010H | 002H
-            DB      "IC"                                                 ; List SD Card directory.
-            DW      DIRSDCARD
-            DB      000H | 000H | 000H | 001H
-            DB      'J'                                                  ; Jump to address.
-            DW      GOTOX
-            DB      000H | 000H | 020H | 004H
-            DB      "LTNX"                                               ; Load from CMT without auto execution.
-            DW      LOADTAPENX
-            DB      000H | 000H | 020H | 002H
-            DB      "LT"                                                 ; Load from CMT
-            DW      LOADTAPE
-            DB      000H | 000H | 000H | 004H
-            DB      "LRNX"                                               ; Load from ROM without auto execution.
-            DW      LOADROMNX
-            DB      000H | 000H | 000H | 002H
-            DB      "LR"                                                 ; Load from ROM
-            DW      LOADROM
-            DB      000H | 000H | 010H | 004H
-            DB      "LCNX"                                               ; Load from SDCARD without auto execution.
-            DW      LOADSDCARDX
-            DB      000H | 000H | 010H | 002H
-            DB      "LC"                                                 ; Load from SD CARD
-            DW      LOADSDCARD
-            DB      000H | 000H | 020H | 001H
-            DB      "L"                                                  ; Original Load from CMT
-            DW      LOADTAPE
-            DB      000H | 000H | 018H | 001H
-            DB      'M'                                                  ; Edit Memory.
-            DW      MCORX
-            DB      000H | 000H | 018H | 001H
-            DB      'P'                                                  ; Printer test.
-            DW      PTESTX
-            DB      000H | 000H | 038H | 001H
-            DB      'R'                                                  ; Memory test.
-            DW      MEMTEST
-            DB      000H | 000H | 018H | 004H
-            DB      "SD2T"                                               ; Copy SD Card to Tape.
-            DW      SD2TAPE
-            DB      000H | 000H | 010H | 002H
-            DB      "SC"                                                 ; Save to SD CARD
-            DW      SAVESDCARD
-            DB      000H | 000H | 020H | 002H
-            DB      "ST"                                                 ; Save to CMT
-            DW      SAVEX
-            DB      000H | 000H | 020H | 001H
-            DB      'S'                                                  ; Save to CMT
-            DW      SAVEX
-            DB      000H | 000H | 000H | 004H
-            DB      "TEST"                                               ; A test function used in debugging.
-            DW      LOCALTEST
-            DB      000H | 000H | 018H | 004H
-            DB      "T2SD"                                               ; Copy Tape to SD Card.
-            DW      TAPE2SD
-            DB      000H | 000H | 038H | 001H
-            DB      'T'                                                  ; Timer test.
-            DW      TIMERTST
-            DB      000H | 000H | 000H | 001H
-            DB      'V'                                                  ; Verify CMT Save.
-            DW      VRFYX
-            DB      000H | 000H | 000H | 001H
-            DB      'X'                                                  ; Exchange to hi load rom so DRAM = 0000:0CFFF
-            DW      HIROM
-            DB      080H | 000H | 000H | 001H
+CMDTABLE:   IF      BUILD_ROMDISK = 1
+              DB    000H | 000H | 000H | 002H                            ; Bit 2:0 = Command Size, 5:3 = Bank, 6 = Command match, 7 = Command table end.
+              DB    "40"                                                 ; 40 Char screen mode.
+              DW    SETMODE40
+              DB    000H | 000H | 000H | 002H
+              DB    "80"                                                 ; 80 Char screen mode.
+              DW    SETMODE80
+             ;DB    000H | 000H | 000H | 004H
+             ;DB    "7008"                                               ; Switch to 80 column MZ700 mode.
+             ;DW    SETMODE7008
+             ;DB    000H | 000H | 000H | 003H
+             ;DB    "700"                                                ; Switch to 40 column MZ700 mode.
+             ;DW    SETMODE700
+              DB    000H | 000H | 000H | 005H
+              DB    "BASIC"                                              ; Load and run BASIC SA-5510.
+              DW    LOADBASIC
+              DB    000H | 000H | 020H | 001H
+              DB    'B'                                                  ; Bell.
+              DW    SGX
+              DB    000H | 000H | 000H | 003H
+              DB    "CPM"                                                ; Load and run CPM.
+              DW    LOADCPM
+              DB    000H | 000H | 018H | 002H
+              DB    "CP"                                                 ; Copy Memory.
+              DW    MCOPY
+              DB    000H | 000H | 018H | 001H
+              DB    'C'                                                  ; Clear Memory.
+              DW    INITMEMX
+              DB    000H | 000H | 018H | 001H
+              DB    'D'                                                  ; Dump Memory.
+              DW    DUMPX
+              DB    000H | 000H | 010H | 002H
+              DB    "EC"                                                 ; Erase file.
+              DW    ERASESD
+              DB    000H | 000H | 008H | 001H
+              DB    'F'                                                  ; RFS Floppy boot code.
+              DW    FLOPPY
+              DB    000H | 000H | 008H | 001H
+              DB    0AAH                                                 ; Original Floppy boot code.
+              DW    FDCK
+              DB    000H | 000H | 030H | 001H
+              DB    'H'                                                  ; Help screen.
+              DW    HELP
+              DB    000H | 000H | 000H | 002H
+              DB    "IR"                                                 ; List ROM directory.
+              DW    DIRROM
+              DB    000H | 000H | 010H | 002H
+              DB    "IC"                                                 ; List SD Card directory.
+              DW    DIRSDCARD
+              DB    000H | 000H | 000H | 001H
+              DB    'J'                                                  ; Jump to address.
+              DW    GOTOX
+              DB    000H | 000H | 020H | 004H
+              DB    "LTNX"                                               ; Load from CMT without auto execution.
+              DW    LOADTAPENX
+              DB    000H | 000H | 020H | 002H
+              DB    "LT"                                                 ; Load from CMT
+              DW    LOADTAPE
+              DB    000H | 000H | 000H | 004H
+              DB    "LRNX"                                               ; Load from ROM without auto execution.
+              DW    LOADROMNX
+              DB    000H | 000H | 000H | 002H
+              DB    "LR"                                                 ; Load from ROM
+              DW    LOADROM
+              DB    000H | 000H | 010H | 004H
+              DB    "LCNX"                                               ; Load from SDCARD without auto execution.
+              DW    LOADSDCARDX
+              DB    000H | 000H | 010H | 002H
+              DB    "LC"                                                 ; Load from SD CARD
+              DW    LOADSDCARD
+              DB    000H | 000H | 020H | 001H
+              DB    "L"                                                  ; Original Load from CMT
+              DW    LOADTAPE
+              DB    000H | 000H | 018H | 001H
+              DB    'M'                                                  ; Edit Memory.
+              DW    MCORX
+              DB    000H | 000H | 018H | 001H
+              DB    'P'                                                  ; Printer test.
+              DW    PTESTX
+              DB    000H | 000H | 020H | 001H
+              DB    'R'                                                  ; Memory test.
+              DW    MEMTEST
+              DB    000H | 000H | 018H | 004H
+              DB    "SD2T"                                               ; Copy SD Card to Tape.
+              DW    SD2TAPE
+              DB    000H | 000H | 010H | 002H
+              DB    "SC"                                                 ; Save to SD CARD
+              DW    SAVESDCARD
+              DB    000H | 000H | 020H | 002H
+              DB    "ST"                                                 ; Save to CMT
+              DW    SAVEX
+              DB    000H | 000H | 020H | 001H
+              DB    'S'                                                  ; Save to CMT
+              DW    SAVEX
+              DB    000H | 000H | 000H | 004H
+              DB    "TEST"                                               ; A test function used in debugging.
+              DW    LOCALTEST
+              DB    000H | 000H | 018H | 004H
+              DB    "T2SD"                                               ; Copy Tape to SD Card.
+              DW    TAPE2SD
+              DB    000H | 000H | 020H | 001H
+              DB    'T'                                                  ; Timer test.
+              DW    TIMERTST
+              DB    000H | 000H | 000H | 001H
+              DB    'V'                                                  ; Verify CMT Save.
+              DW    VRFYX
+              DB    000H | 000H | 000H | 001H
+              DB    'X'                                                  ; Exchange to hi load rom so DRAM = 0000:0CFFF
+              DW    HIROM
+              DB    080H | 000H | 000H | 001H
+            ENDIF
 
             ;-------------------------------------------------------------------------------
             ; END OF RFS INITIALISATION AND COMMAND ENTRY PROCESSOR FUNCTIONALITY.
@@ -507,41 +613,47 @@ HEXIYX2:    POP     AF                                                   ; Waste
             ;
             ;====================================
 
-HIROM:      LD      A, (MEMSW)                                           ; Swap ROM into high range slot.
-            LD      A, ROMBANK2
-            LD      (ROMBK1),A                                           ; Save bank being enabled.
-            LD      (BNKSELMROM),A                                       ; Switch to the hiload rom in bank 2.
-            JP      0C000H
+HIROM:      IF BUILD_ROMDISK = 1
+              LD    A, (MEMSW)                                           ; Swap ROM into high range slot.
+              LD    A, ROMBANK2
+              LD    (ROMBK1),A                                           ; Save bank being enabled.
+              HWSELMROM                                                    ; Switch to the hiload rom in bank 2.
+              JP    0C000H
+            ENDIF
 
-SETMODE40:  LD      A, ROMBANK0                                          ; Switch to 40Char monitor.
-            LD      (ROMBK1),A
-            LD      (BNKSELMROM),A
-            IF      VIDEOMODULE_ENA = 1
-              LD    HL,DSPCTL                                            ; Setup address of display control register latch.
-              LD    A, 0
-              LD    E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
-              LD    (HL), A
+SETMODE40:  IF BUILD_ROMDISK = 1
+              LD    A, ROMBANK0                                          ; Switch to 40Char monitor.
+              LD    (ROMBK1),A
+              HWSELMROM
+              IF    VIDEOMODULE_ENA = 1
+                LD  HL,DSPCTL                                            ; Setup address of display control register latch.
+                LD  A, 0
+                LD  E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
+                LD  (HL), A
+              ENDIF
+              IF    KUMA80_ENA = 1                                       ; Kuma80 modification uses INTEN on PC@ of 8255, 0 = 40 column.
+                LD  A,04H
+                LD  (KEYPF),A
+              ENDIF
+              JP    MONIT
             ENDIF
-            IF      KUMA80_ENA = 1                                       ; Kuma80 modification uses INTEN on PC@ of 8255, 0 = 40 column.
-              LD    A,04H
-              LD    (KEYPF),A
-            ENDIF
-            JP      MONIT
  
-SETMODE80:  LD      A, ROMBANK1                                          ; Switch to 80char monitor.
-            LD      (ROMBK1),A
-            LD      (BNKSELMROM),A
-            IF      VIDEOMODULE_ENA = 1
-              LD    HL,DSPCTL                                            ; Setup address of display control register latch.
-              LD    A, 128
-              LD    E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
-              LD    (HL), A
+SETMODE80:  IF BUILD_ROMDISK = 1
+              LD    A, ROMBANK1                                          ; Switch to 80char monitor.
+              LD    (ROMBK1),A
+              HWSELMROM
+              IF    VIDEOMODULE_ENA = 1
+                LD  HL,DSPCTL                                            ; Setup address of display control register latch.
+                LD  A, 128
+                LD  E,(HL)                                               ; Dummy operation to enable latch write via multivibrator.
+                LD  (HL), A
+              ENDIF
+              IF    KUMA80_ENA = 1                                       ; Kuma80 modification uses INTEN on PC@ of 8255, 0 = 40 column.
+                LD  A,05H
+                LD  (KEYPF),A
+              ENDIF
+              JP    MONIT
             ENDIF
-            IF      KUMA80_ENA = 1                                       ; Kuma80 modification uses INTEN on PC@ of 8255, 0 = 40 column.
-              LD    A,05H
-              LD    (KEYPF),A
-            ENDIF
-            JP      MONIT
 
 NOTZPU:     LD      DE,MSGNOTZINST                                        ; No tranZPUter installed.
             LD      HL,PRINTMSG
@@ -640,8 +752,10 @@ _PRTDBG:    IF ENADEBUG = 1
             PUSH    DE
             PUSH    BC
             PUSH    AF
-            LD      A,(ROMBK1)
-            LD      (BNKSELMROM),A                                       ; Set the MROM bank back to original.
+            IF BUILD_ROMDISK = 1
+              LD    A,(ROMBK1)
+              HWSELMROM                                                  ; Set the MROM bank back to original.
+            ENDIF
             CALL    PRTHL                                                ; HL
             LD      A, ' '
             CALL    PRNT
@@ -666,8 +780,10 @@ _PRTDBG:    IF ENADEBUG = 1
             CALL    PRNT
       ;     CALL    NL
       ; CALL GETKY
-            LD      A,(WRKROMBK1)
-            LD      (BNKSELMROM),A                                       ; Set the MROM bank back to scanned bank.
+            IF BUILD_ROMDISK = 1
+              LD    A,(WRKROMBK1)
+              HWSELMROM                                                  ; Set the MROM bank back to scanned bank.
+            ENDIF
             POP     AF
             POP     BC
             POP     DE
@@ -679,8 +795,10 @@ _PRTMZF:    PUSH    BC
             PUSH    DE
             PUSH    HL
             ;
-            LD      A,(ROMBK1)                                           ; Ensure main MROM is switched in.
-            LD      (BNKSELMROM),A
+            IF BUILD_ROMDISK = 1
+              LD    A,(ROMBK1)                                           ; Ensure main MROM is switched in.
+              HWSELMROM
+            ENDIF
             ;
             LD      A,(SCRNMODE)
             CP      0
@@ -746,8 +864,10 @@ PRTMZF2:    LD      L,A
 PRTMZF3:    XOR     A
 PRTMZF4:    OR      A
             PUSH    AF
-            LD      A, (WRKROMBK1)
-            LD      (BNKSELMROM),A
+            IF BUILD_ROMDISK = 1
+              LD    A, (WRKROMBK1)
+              HWSELMROM
+            ENDIF
             POP     AF
             POP     HL
             POP     DE
@@ -770,12 +890,14 @@ DIRROM:    ;DI                                                           ; Disab
             LD      D,0                                                  ; File numbering start.
 
             ;
-            ; Get directory of User ROM.
+            ; Get directory of User ROM (RomDisk).
             ;
-            LD      A,ROMBANK3
-            LD      (WRKROMBK1),A
-            LD      (BNKSELMROM),A
-            CALL    DIRMROM
+            IF BUILD_ROMDISK = 1
+              LD    A,ROMBANK3
+              LD    (WRKROMBK1),A
+              HWSELMROM
+              CALL  DIRMROM
+            ENDIF
             ;
             ; Scan MROM Bank
             ; B = Bank Page
@@ -786,7 +908,7 @@ DIRROM:    ;DI                                                           ; Disab
             ;
 DIRNXTPG:   LD      A,B
             LD      (WRKROMBK1), A
-            LD      (BNKSELMROM),A                                       ; Select bank.
+            HWSELMROM                                                    ; Select bank.
 
             PUSH    BC                                                   ; Preserve bank count/block number.
             PUSH    DE                                                   ; Preserve file numbering.
@@ -799,7 +921,7 @@ DIRNXTPG:   LD      A,B
             ENDIF
             LD      B,A
             LD      C,0
-            LD      HL,RFS_ATRB                                          ; Add block offset to get the valid block address.
+            LD      HL,MROMSTART                                         ; Add block offset to get the valid block address.
             ADD     HL,BC
             CALL    ISMZF
             POP     DE
@@ -821,7 +943,7 @@ DIRNXTPG2:  LD      A,B
             JR      NZ, DIRNXTPG
 
 DIRNXTPGX:  LD      A,(ROMBK1)
-            LD      (BNKSELMROM),A                                       ; Set the MROM bank back to original.
+            HWSELMROM                                                    ; Set the MROM bank back to original.
            ;EI                                                           ; No need to block interrupts now as MROM bank restored.
             RET                                                          ; End of scan, return to monitor
 
@@ -852,10 +974,10 @@ FINDMZF0:   POP     DE                                                   ; Get f
             LD      C,0                                                  ; Block in page.
 FINDMZF1:   LD      A,B
             LD      (WRKROMBK1), A
-            LD      (BNKSELMROM),A                                       ; Select bank.
+            HWSELMROM                                                    ; Select bank.
 FINDMZF2:   PUSH    BC                                                   ; Preserve bank count/block number.
             PUSH    DE                                                   ; Preserve file numbering.
-            LD      HL,RFS_ATRB                                          ; Add block offset to get the valid block.
+            LD      HL,MROMSTART                                         ; Add block offset to get the valid block.
             LD      A,C
             IF RFSSECTSZ >= 512
               RLCA
@@ -871,7 +993,7 @@ FINDMZF2:   PUSH    BC                                                   ; Prese
             POP     DE
             POP     BC
             LD      A,(ROMBK1)
-            LD      (BNKSELMROM),A                                       ; Set the MROM bank back to original.
+            HWSELMROM                                                    ; Set the MROM bank back to original.
             JR      NZ, FINDMZF4                                         ; Z set if we found an MZF record.
             INC     HL                                                   ; Save address of filename.
             PUSH    HL
@@ -892,7 +1014,7 @@ FINDMZF3:   POP     HL
             LD      DE,(TMPADR)                                          ; Original DE put onto stack, original filename into HL 
             LD      BC,FNSIZE
             LD      A,(WRKROMBK1)
-            LD      (BNKSELMROM),A                                       ; Select correct bank for comparison.
+            HWSELMROM                                                    ; Select correct bank for comparison.
             CALL    CMPSTRING
             POP     BC
             POP     DE
@@ -913,7 +1035,7 @@ FINDMZF5:   LD      A,B
 FINDMZFYES:                                                              ; Flag set by previous test.
 FINDMZFNO:  PUSH    AF
             LD      A,(ROMBK1)
-            LD      (BNKSELMROM),A                                       ; Set the MROM bank back to original.
+            HWSELMROM                                                    ; Set the MROM bank back to original.
             POP     AF
             RET
 
@@ -936,7 +1058,7 @@ LOADROM1:  ;DI
             ;
             LD      A,ROMBANK3                                           ; Activate the RFS Utilities MROM bank.
             LD      (WRKROMBK1), A
-            LD      (BNKSELMROM),A
+            HWSELMROM
             CALL    MFINDMZF                                             ; Try and find the file in User ROM via MROM utility.
             POP     HL
             JR      Z,MROMLOAD0
@@ -949,13 +1071,13 @@ LOADROM1:  ;DI
 MROMLOAD0:  PUSH    BC                                                   ; Preserve bank and block where MZF file found.
             PUSH    AF
             LD      A,(ROMBK1)                                           ; Page in monitor so we can print a message.
-            LD      (BNKSELMROM),A
+            HWSELMROM
             LD      DE,MSGLOAD+1                                         ; Skip initial CR.
             LD      BC,NAME
             LD      HL,PRINTMSG
             CALL    BKSW0to6
             LD      A,(WRKROMBK1)                                        ; Revert to MROM bank to load the application.
-            LD      (BNKSELMROM),A
+            HWSELMROM
             POP     AF
             POP     BC
             ;
@@ -964,7 +1086,7 @@ MROMLOAD0:  PUSH    BC                                                   ; Prese
 
 LROMNTFND:  POP     HL                                                   ; Dont need execute flag anymore so waste it.
             LD      A,(ROMBK1)
-            LD      (BNKSELMROM),A
+            HWSELMROM
             LD      HL,PRINTMSG
             LD      DE,MSGNOTFND                                         ; Not found
             CALL    BKSW0to6
@@ -985,7 +1107,7 @@ LROMLOAD:   PUSH    BC
             ;
             LD      A,B
             LD      (WRKROMBK1),A
-            LD      (BNKSELMROM),A
+            HWSELMROM
             ;
             LD      DE, IBUFE                                            ; Copy the header into the work area.
             LD      HL, 00000h                                           ; Add block offset to get the valid block.
@@ -1016,7 +1138,7 @@ LROMLOAD:   PUSH    BC
             ;  C = Block 
 LROMLOAD2:  LD      A, B
             LD      (WRKROMBK1), A
-            LD      (BNKSELMROM),A
+            HWSELMROM
 
 LROMLOAD3:  PUSH    BC
             LD      HL, 00000h
@@ -1068,7 +1190,7 @@ LROMLOAD7:  LD      A, B
 LROMLOAD8:  POP     BC
 LROMLOAD5:  POP     HL                                                   ; Retrieve execute flag.
             LD      A,(ROMBK1)
-            LD      (BNKSELMROM),A                                       ; Set the MROM bank back to original.
+            HWSELMROM                                                    ; Set the MROM bank back to original.
             LD      A,L                                                  ; Autoexecute turned off?
             CP      0FFh
             JP      Z,LROMLOAD9                                          ; Go back to monitor if it has been, else execute.
@@ -1359,12 +1481,12 @@ DEFAULTFNE: EQU     $
             ;
             ALIGN   0EFF8h
             ORG     0EFF8h
-            DB      0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh
+            DB      0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0AAh
 
 MEND:
 
             ;
-            ; Include all other banks which make up the RFS User cited ROM.
+            ; Include all other banks which make up the RFS User sited ROM.
             ;
             INCLUDE  "rfs_bank1.asm"
             INCLUDE  "rfs_bank2.asm"

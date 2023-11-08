@@ -36,6 +36,12 @@
 ;- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;--------------------------------------------------------------------------------------------------------
 
+           IF     BUILD_SFD700 = 1
+            ORG    0E000H
+            ALIGN  UROMADDR
+             
+
+            ENDIF
 
             ;======================================
             ;
@@ -48,20 +54,7 @@
             ; Common code spanning all banks.
             ;--------------------------------
             NOP
-            LD      B,16                                                     ; If we read the bank control reset register 15 times then this will enable bank control and then the 16th read will reset all bank control registers to default.
-ROMFS6_0:   LD      A,(BNKCTRLRST)
-            DJNZ    ROMFS6_0                                                 ; Apply the default number of coded latch reads to enable the bank control registers.
-            LD      A,BNKCTRLDEF                                             ; Set coded latch, SDCS high, BBMOSI to high and BBCLK to high which enables SDCLK.
-            LD      (BNKCTRL),A
-            NOP
-            NOP
-            NOP
-            XOR     A                                                        ; We shouldnt arrive here after a reset, if we do, select UROM bank 0
-            LD      (BNKSELMROM),A
-            NOP
-            NOP
-            NOP
-            LD      (BNKSELUSER),A                                           ; and start up - ie. SA1510 Monitor - this occurs as User Bank 0 is enabled and the jmp to 0 is coded in it.
+            HWSELROM2                                                        ; Select the first ROM page.
             ;
             ; No mans land... this should have switched to Bank 0 and at this point there is a jump to 00000H.
             JP      00000H                                                   ; This is for safety!!
@@ -117,10 +110,10 @@ BKSW6_0:    PUSH    HL                                                       ; P
             LD      HL, BKSWRET6                                             ; Place bank switchers return address on stack.
             EX      (SP),HL
             LD      (TMPSTACKP),SP                                           ; Save the stack pointer as some old code corrupts it.
-            LD      (BNKSELUSER), A                                          ; Repeat the bank switch B times to enable the bank control register and set its value.
+            BNKSWSEL
             JP      (HL)                                                     ; Jump to required function.
 BKSWRET6:   POP     AF                                                       ; Get bank which called us.
-            LD      (BNKSELUSER), A                                          ; Return to that bank.
+            BNKSWSELRET
             POP     AF
             RET  
 
@@ -280,39 +273,69 @@ PRTSTRE:    POP     DE
             ; Help text. Use of lower case, due to Sharp's non standard character set, is not easy, you have to manually code each byte
             ; hence using upper case.
             ;        1                                      40
-HELPSCR:    DB      "0..9  - select RFS Drive.",                            00DH
-            DB      "40    - 40 col mode.",                                 00DH
-            DB      "80    - 80 col mode.",                                 00DH
-           ;DB      "700   - Select MZ-700 Mode.",                          00DH
-           ;DB      "7008  - Select MZ-700 80 col Mode.",                   00DH            
-            DB      "B     - toggle keyboard bell.",                        00DH
-            DB      "BASIC - Load BASIC SA-5510.",                          00DH            
-            DB      "C     - clear memory $1200-$D000.",                    00DH
-            DB      "CPXXXXYYYYZZZZ - copy memory",                         00DH
-            DB      "        XXXX=src,YYYY=dst,ZZZZ=size",                  00DH
-            DB      "CPM   - Load CPM.",                                    00DH
-            DB      "DXXXX[YYYY] - dump mem XXXX to YYYY.",                 00DH
-            DB      "EC[FN]- erase file, FN=No, or Filename",               00DH
-            DB      "F[X]  - boot fd drive X.",                             00DH
-            DB      "f     - boot fd original rom.",                        00DH
-            DB      "H     - this help screen.",                            00DH
-            DB      "IR/IC - rfs dir listing rom/sd card.",                 00DH
-            DB      "JXXXX - jump to location XXXX.",                       00DH
-            DB      "LT[FN]- load tape, FN=Filename",                       00DH
-            DB      "LR[FN]- load rom, FN=No. or Filename",                 00DH
-            DB      "LC[FN]- load sdcard, FN=No. or Filename",              00DH
-            DB      "      - add NX for no exec, ie.LRNX.",                 00DH
-            DB      "MXXXX - edit memory starting at XXXX.",                00DH
-            DB      "P     - test printer.",                                00DH
-            DB      "R     - test dram memory.",                            00DH
-            DB      "SD2T  - copy sd card to tape.",                        00DH
-            DB      "ST[XXXXYYYYZZZZ] - save mem to tape.",                 00DH
-            DB      "SC[XXXXYYYYZZZZ] - save mem to card.",                 00DH
-            DB      "        XXXX=start,YYYY=end,ZZZZ=exec",                00DH
-            DB      "T     - test timer.",                                  00DH
-            DB      "T2SD  - copy tape to sd card.",                        00DH
-            DB      "V     - verify tape save.",                            00DH
-            DB      000H
+HELPSCR:    IF      BUILD_ROMDISK = 1
+              DB    "0..9  - select RFS Drive.",                            00DH
+              DB    "40    - 40 col mode.",                                 00DH
+              DB    "80    - 80 col mode.",                                 00DH
+             ;DB    "700   - Select MZ-700 Mode.",                          00DH
+             ;DB    "7008  - Select MZ-700 80 col Mode.",                   00DH            
+              DB    "B     - toggle keyboard bell.",                        00DH
+              DB    "BASIC - Load BASIC SA-5510.",                          00DH            
+              DB    "C     - clear memory $1200-$D000.",                    00DH
+              DB    "CPXXXXYYYYZZZZ - copy memory",                         00DH
+              DB    "        XXXX=src,YYYY=dst,ZZZZ=size",                  00DH
+              DB    "CPM   - Load CPM.",                                    00DH
+              DB    "DXXXX[YYYY] - dump mem XXXX to YYYY.",                 00DH
+              DB    "EC[FN]- erase file, FN=No, or Filename",               00DH
+              DB    "F[X]  - boot fd drive X.",                             00DH
+              DB    "f     - boot fd original rom.",                        00DH
+              DB    "H     - this help screen.",                            00DH
+              DB    "IR/IC - rfs dir listing rom/sd card.",                 00DH
+              DB    "JXXXX - jump to location XXXX.",                       00DH
+              DB    "LT[FN]- load tape, FN=Filename",                       00DH
+              DB    "LR[FN]- load rom, FN=No. or Filename",                 00DH
+              DB    "LC[FN]- load sdcard, FN=No. or Filename",              00DH
+              DB    "      - add NX for no exec, ie.LRNX.",                 00DH
+              DB    "MXXXX - edit memory starting at XXXX.",                00DH
+              DB    "P     - test printer.",                                00DH
+              DB    "R     - test dram memory.",                            00DH
+              DB    "SD2T  - copy sd card to tape.",                        00DH
+              DB    "ST[XXXXYYYYZZZZ] - save mem to tape.",                 00DH
+              DB    "SC[XXXXYYYYZZZZ] - save mem to card.",                 00DH
+              DB    "        XXXX=start,YYYY=end,ZZZZ=exec",                00DH
+              DB    "T     - test timer.",                                  00DH
+              DB    "T2SD  - copy tape to sd card.",                        00DH
+              DB    "V     - verify tape save.",                            00DH
+              DB    000H
+            ENDIF
+            IF      BUILD_SFD700 = 1
+              DB    "ASMXXXX assemble into dest XXXX",                      00DH
+              DB    "B     - toggle keyboard bell.",                        00DH
+              DB    "BASIC - Load BASIC SA-5510.",                          00DH            
+              DB    "C     - clear memory $1200-$D000.",                    00DH
+              DB    "CPXXXXYYYYZZZZ - copy memory",                         00DH
+              DB    "        XXXX=src,YYYY=dst,ZZZZ=size",                  00DH
+             ;DB    "CPM   - Load CPM.",                                    00DH
+              DB    "DXXXX[YYYY] - dump mem XXXX to YYYY.",                 00DH
+              DB    "DASMXXXX[YYYY]",                                       00DH
+              DB    "        disassemble XXXX to YYYY",                     00DH
+              DB    "F[X]  - boot fd drive X.",                             00DH
+              DB    "f     - boot fd original rom.",                        00DH
+              DB    "H     - this help screen.",                            00DH
+              DB    "IR    - rfs rom dir listing.",                         00DH
+              DB    "JXXXX - jump to location XXXX.",                       00DH
+              DB    "LT[FN]- load tape, FN=Filename",                       00DH
+              DB    "LR[FN]- load rom, FN=No. or Filename",                 00DH
+              DB    "      - add NX for no exec, ie.LRNX.",                 00DH
+              DB    "MXXXX - edit memory starting at XXXX.",                00DH
+              DB    "P     - test printer.",                                00DH
+              DB    "R     - test dram memory.",                            00DH
+              DB    "ST[XXXXYYYYZZZZ] - save mem to tape.",                 00DH
+              DB    "        XXXX=start,YYYY=end,ZZZZ=exec",                00DH
+              DB    "T     - test timer.",                                  00DH
+              DB    "V     - verify tape save.",                            00DH
+              DB    000H
+            ENDIF
 
             ;-------------------------------------------------------------------------------
             ; END OF HELP SCREEN FUNCTIONALITY
@@ -455,7 +478,7 @@ ATBL:       DB      0CCH   ; NUL '\0' (null character)
             ;
             ;--------------------------------------
 MSGSONTZ:   DB      "+ TZ"                                                                     ; Version 2.x with version 2.1+ of tranZPUter board installed.
-MSGSON:     DB      "+ RFS ",    0ABh, "2.2 **",               00DH, 000H                      ; Version 2.x-> as we are now using the v2.x PCB with 4 devices on-board
+MSGSON:     DB      "+ RFS ",    0ABh, "2.3 **",               00DH, 000H                      ; Version 2.x-> as we are now using the v2.x PCB with 4 devices on-board
 MSGNOTFND:  DB      "Not Found",                               00DH, 000H
 MSGRDIRLST: DB      "ROM Directory:",                          00DH, 000H
 MSGTRM:     DB                                                 00DH, 000H
@@ -491,7 +514,16 @@ MSGNOTZINST:DB      "No tranZPUter >=v2 card installed.",      00DH, 000H
 MSGNOCMTDIR:DB      "CMT has no directory.",                   00DH, 000H
 MSGINVDRV:  DB      "Invalid drive, SD=0..9 or C=CMT",         00DH, 000H
 MSGNOVERIFY:DB      "No Verify for SD!",                       00DH, 000H
+MSGNOINSTR: DB      "Bad instruction.",                        00DH, 000H
+MSGNOPARAM: DB      "Bad parameter.",                          00DH, 000H
 
-            ALIGN   0EFF8h
-            ORG     0EFF8h
-            DB      0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh
+            ; RomDisk - Pad to EFFF boundary.
+            IF      BUILD_ROMDISK = 1
+              ALIGN 0EFF8h
+              ORG   0EFF8h
+              DB    0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh            
+            ENDIF
+            ; SFD700 - Pad to 10000H
+            IF      BUILD_SFD700 = 1
+              ALIGN 10000H
+            ENDIF
