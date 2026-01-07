@@ -55,7 +55,7 @@ diskdef MZ80A-RFS-320
   tracks 20 
   sectrk 128
   blocksize 2048
-  maxdir 32
+  maxdir 64
   skew 0
   boottrk 0
   os 2.2

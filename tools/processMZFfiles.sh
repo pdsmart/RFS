@@ -39,7 +39,8 @@ MZBDIR=${ROOTDIR}/MZB
 BLOCKSIZELIST="128 256"
 
 # Build list of files to process.
-for SUBDIR in Common MZ-80A MZ-80K MZ-700 MZ-800 MZ-1500 MZ-2000 MZ-80B 
+# for SUBDIR in Common MZ-80A MZ-80K MZ-700 MZ-800 MZ-1500 MZ-2000 MZ-80B 
+for SUBDIR in Common MZ-1200 MZ-1500 MZ-2000 MZ-2200 MZ-2500 MZ-2800 MZ-700 MZ-700-2 MZ-800 MZ-80A MZ-80B MZ-80C MZ-80K
 do
     cd ${MZFDIR}
     ls -l ${SUBDIR}/*.MZF ${SUBDIR}/*.mzf 2>/dev/null |\
@@ -82,4 +83,9 @@ do
           done
       done
     done </tmp/filelist
+
+    if [[ "${SUBDIR}" = "MZ-700-2" ]]; then
+        cp ${MZBDIR}/${SUBDIR}/* ${MZBDIR}/MZ-700/
+    fi
+
 done

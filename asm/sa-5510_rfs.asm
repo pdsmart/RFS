@@ -96,13 +96,23 @@ ONTYO       EQU     0119FH
 OCTV        EQU     011A0H
 RATIO       EQU     011A1H
 BUFER       EQU     011A3H
-CMT_RDINF   EQU     0E886H                                               ; UROMADDR+86H - Tape/SD intercept handler - Read Header
-CMT_RDDATA  EQU     0E889H                                               ; UROMADDR+89H - Tape/SD intercept handler - Read Data
-CMT_WRINF   EQU     0E88CH                                               ; UROMADDR+80H - Tape/SD intercept handler - Write Header
-CMT_WRDATA  EQU     0E88FH                                               ; UROMADDR+8FH - Tape/SD intercept handler - Write Data
-CMT_VERIFY  EQU     0E892H                                               ; UROMADDR+92H - Tape/SD intercept handler - Verify Data
-CMT_DIR     EQU     0E895H                                               ; UROMADDR+95H - SD directory command.
-PRGSTART    EQU     011FDH                                               ; Build includes the tape copy code under original build.
+
+; RFS ROM addresses.
+UROMADDR    EQU     0E800H                                   ; Start of User ROM Address space.
+UROMBSTBL   EQU     UROMADDR + 020H                          ; Entry point to the bank switching table.
+RFSJMPTABLE EQU     UROMADDR + 000B0H                        ; Start of jump table.
+
+;-------------------------------------------------------
+; Function entry points in the RFS ROM.
+;-------------------------------------------------------
+CMT_RDINF   EQU     RFSJMPTABLE + 06H                        ; UROMADDR+86H - Tape/SD intercept handler - Read Header
+CMT_RDDATA  EQU     RFSJMPTABLE + 09H                        ; UROMADDR+89H - Tape/SD intercept handler - Read Data
+CMT_WRINF   EQU     RFSJMPTABLE + 0CH                        ; UROMADDR+80H - Tape/SD intercept handler - Write Header
+CMT_WRDATA  EQU     RFSJMPTABLE + 0FH                        ; UROMADDR+8FH - Tape/SD intercept handler - Write Data
+CMT_VERIFY  EQU     RFSJMPTABLE + 12H                        ; UROMADDR+92H - Tape/SD intercept handler - Verify Data
+CMT_DIR     EQU     RFSJMPTABLE + 15H                        ; UROMADDR+95H - SD directory command.
+CNV_ATOS    EQU     RFSJMPTABLE + 18H                        ; UROMADDR+98H - Convert an ASCII string into Sharp ASCII
+PRGSTART    EQU     011FDH                                   ; Build includes the tape copy code under original build.
 
             ; Original build set the tape handlers to original.
             IF BUILD_ORIG = 1

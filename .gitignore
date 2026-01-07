@@ -204,4 +204,12 @@ MZ800_IOCS.ref
 asm/c2
 asm/sa1510.asm.prekuma
 roms/test.rom
-
+tools/cpmchattr
+tools/cpmchmod
+tools/cpmcp
+tools/cpmls
+tools/cpmrm
+tools/fsck.cpm
+tools/fsed.cpm
+tools/mkfs.cpm
+tools/share/

@@ -11,12 +11,15 @@
 ;- Copyright:       (c) 2018-2023 Philip Smart <philip.smart@net2net.org>
 ;-
 ;- History:         July 2019 - Merged 2 utilities to create this compilation.
-;                   May 2020  - Bank switch changes with release of v2 pcb with coded latch. The coded
-;                               latch adds additional instruction overhead as the control latches share
-;                               the same address space as the Flash RAMS thus the extra hardware to
-;                               only enable the control registers if a fixed number of reads is made
-;                               into the upper 8 bytes which normally wouldnt occur. Caveat - ensure
-;                               that no loop instruction is ever placed into EFF8H - EFFFH.
+;-                  May 2020  - Bank switch changes with release of v2 pcb with coded latch. The coded
+;-                              latch adds additional instruction overhead as the control latches share
+;-                              the same address space as the Flash RAMS thus the extra hardware to
+;-                              only enable the control registers if a fixed number of reads is made
+;-                              into the upper 8 bytes which normally wouldnt occur. Caveat - ensure
+;-                              that no loop instruction is ever placed into EFF8H - EFFFH.
+;-                  Aug 2023  - Updates to make RFS run under the SFD700 Floppy Disk Interface board.
+;-                              UROM remains the same, a 2K paged ROM, MROM is located at F000 when
+;-                              RFS is built for the SFD700.
 ;-
 ;--------------------------------------------------------------------------------------------------------
 ;- This source file is free software: you can redistribute it and-or modify
@@ -38,11 +41,11 @@ COLW        EQU     40
 SCRNSZ      EQU     COLW * ROW
 MODE80C     EQU     0
 
-           IF     BUILD_SFD700 = 1
-            ORG    0E000H
-            ALIGN  UROMADDR
-             
-
+            IF BUILD_SFD700 = 1
+             ORG    0E000H
+             ALIGN  0E300H
+             DB     "BANK3"
+             ALIGN  UROMADDR
             ENDIF
 
             ;===========================================================

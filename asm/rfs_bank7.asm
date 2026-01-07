@@ -1,6 +1,6 @@
 ;--------------------------------------------------------------------------------------------------------
 ;-
-;- Name:            rfs_bank4.asm
+;- Name:            rfs_bank7.asm
 ;- Created:         July 2019
 ;- Author(s):       Philip Smart
 ;- Description:     Sharp MZ series Rom Filing System.
@@ -11,12 +11,15 @@
 ;- Copyright:       (c) 2018-2023 Philip Smart <philip.smart@net2net.org>
 ;-
 ;- History:         July 2019 - Merged 2 utilities to create this compilation.
-;                   May 2020  - Bank switch changes with release of v2 pcb with coded latch. The coded
-;                               latch adds additional instruction overhead as the control latches share
-;                               the same address space as the Flash RAMS thus the extra hardware to
-;                               only enable the control registers if a fixed number of reads is made
-;                               into the upper 8 bytes which normally wouldnt occur. Caveat - ensure
-;                               that no loop instruction is ever placed into EFF8H - EFFFH.
+;-                  May 2020  - Bank switch changes with release of v2 pcb with coded latch. The coded
+;-                              latch adds additional instruction overhead as the control latches share
+;-                              the same address space as the Flash RAMS thus the extra hardware to
+;-                              only enable the control registers if a fixed number of reads is made
+;-                              into the upper 8 bytes which normally wouldnt occur. Caveat - ensure
+;-                              that no loop instruction is ever placed into EFF8H - EFFFH.
+;-                  Aug 2023  - Updates to make RFS run under the SFD700 Floppy Disk Interface board.
+;-                              UROM remains the same, a 2K paged ROM, MROM is located at F000 when
+;-                              RFS is built for the SFD700.
 ;-
 ;--------------------------------------------------------------------------------------------------------
 ;- This source file is free software: you can redistribute it and-or modify
@@ -40,11 +43,11 @@ ADDR:
 ADDR_LO:    DS      virtual 1 
 ADDR_HI:    DS      virtual 1
 ASM_ADDR:   DS      virtual 8        ; Assembler Destination address
-ASM_BUF:    DS      virtual 16       ; 16 byte ASM Input Buffer
+ASM_BUF:    DS      virtual 12       ; 16 byte ASM Input Buffer
 OUT_BUF:    DS      virtual 4        ; 4 byte test buffer(last part of ASM_BUF)  
 INS_BUF:    DS      virtual 4        ; 4 Byte Instruction Buffer
 PARM_BUF:   DS      virtual 7        ; 7 Byte Parm Buffer
-VAL_BUF:                             ; 5 Byte Value Buffer
+VAL_BUF:   ;DS      virtual 5        ; 5 Byte Value Buffer
 VAL_BUF_HI: DS      virtual 2        ; 2 Hi Bytes in Value Buffer
 VAL_BUF_LO: DS      virtual 2        ; 2 Lo Bytes in Value Buffer
             DS      virtual 1
@@ -59,6 +62,7 @@ ML_BUF:     DS      virtual 2        ; 3 byte ML buffer
 ML_BTCOUNT: DS      virtual 1        ; Last byte of ML buffer(byte count)
 VAL_LO:     DS      virtual 1        ; Converted value LO
 VAL_HI:     DS      virtual 1        ; Converted value Hi
+BUF_END:    
 
 
             ORG     0E000H
@@ -117,7 +121,7 @@ DASM_LOOP1:  CALL   NL               ; Print CR & LF
              
              LD     HL,ASM_BUF       ; Clear ASM_BUF, INS_BUF, PARM_BUF & VAL_BUF
              LD     A,020H
-             LD     B,26             ; (Set to all spaces)
+             LD     B,BUF_END-ASM_BUF; (Set to all spaces)
 DASM_FILL:   LD     (HL),A
              INC    HL
              DEC    B

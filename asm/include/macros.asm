@@ -46,13 +46,21 @@ HWSEL1:             LD      A,(BNKCTRLRST)
                     LD      (BNKSELUSER),A                 ; and start up - ie. SA1510 Monitor - this occurs as User Bank 0 is enabled and the jmp to 0 is coded in it.
                 ENDIF                                      ; 22 bytes.
 
+                                                           ; MODE_MZ1200 0
+                                                           ; MODE_MZ80A  0
+                                                           ; MODE_MZ700  1
+                                                           ; MODE_MZ80B  2
+                                                           ; MODE_MZ800  3
+                                                           ; MODE_MZ1500 4
+                                                           ; MODE_MZ2000 5
+                                                           ; MODE_MZ2200 6
                 IF BUILD_SFD700 = 1
                     IN      A,(SFD700_MODE)
                     OR      A
                     LD      A,BNKDEFMROM_MZ80A             ; Setup default MROM for an MZ80A, this is a 4K Window into the UROM at F000.
-                    JR      HWSEL11
-HWSEL11:            LD      A,BNKDEFMROM_MZ700             ; Setup default MROM for an MZ700, this is a 4K Window into the UROM at F000.
-                    OUT     (REG_FXXX),A
+                    JR      Z, HWSEL11
+                    LD      A,BNKDEFMROM_MZ700             ; Setup default MROM for an MZ700, this is a 4K Window into the UROM at F000.
+HWSEL11:            OUT     (REG_FXXX),A
                     LD      (ROMBK1),A
                     LD      A,BNKDEFUROM                   ; Setup default UROM, this is a 2K Window into the UROM at E800 and contains the RFS.
                     OUT     (REG_EXXX),A                               
@@ -60,6 +68,7 @@ HWSEL11:            LD      A,BNKDEFMROM_MZ700             ; Setup default MROM 
                     NOP
                 ENDIF
 	        ENDM
+
 HWSELROM2:  MACRO        
                 IF BUILD_ROMDISK = 1
                     LD      B,16                           ; If we read the bank control reset register 15 times then this will enable bank control and then the 16th read will reset all bank control registers to default.
@@ -81,7 +90,7 @@ HWSEL2:             LD      A,(BNKCTRLRST)
                     IN      A,(SFD700_MODE)
                     OR      A
                     LD      A,BNKDEFMROM_MZ80A             ; Setup default MROM for an MZ80A, this is a 4K Window into the UROM at F000.
-                    JR      HWSEL21
+                    JR      Z,HWSEL21
                     LD      A,BNKDEFMROM_MZ700             ; Setup default MROM for an MZ700, this is a 4K Window into the UROM at F000.
 HWSEL21:            OUT     (REG_FXXX),A
                     LD      A,BNKDEFUROM                   ; Setup default UROM, this is a 2K Window into the UROM at E800 and contains the RFS.
@@ -118,10 +127,10 @@ BNKSWSEL:    MACRO
                     LD      (BNKSELUSER),A
                 ENDIF
                 IF BUILD_SFD700 = 1
-                    OUT     (REG_EXXX),A                   ; Execute active bank switch.
+                    OUT     (REG_EXXX),A                   ; Execute active bank switch for E000:EFFF.
                     CP      ROMBANK6                       ; ROMBANK6/7 page in ROM from E300:FFFF
                     JR      C,BNKSWJMP
-                    INC     A
+                    INC     A                              ; FXXX are 4K banks, EXXX are 2K banks.
                     JR      BNKSWJMP2
 BNKSWJMP:           LD      A,(ROMBK1)                     ; All other banks place the current active ROM into F000:FXXX space.
 BNKSWJMP2:          OUT     (REG_FXXX),A

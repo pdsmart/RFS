@@ -7,7 +7,7 @@
 ; 
 ; on Thursday, 06 of February 2020 at 01:38 PM
 ; 
-i          ; Bring in additional resources.
+           ; Bring in additional resources.
            INCLUDE "rfs_definitions.asm"
            INCLUDE "macros.asm"
 SS:        EQU      00089h

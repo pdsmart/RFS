@@ -48,7 +48,7 @@
 ; BASIC_build.asm which configures the equates below for the correct build.
 BUILD_KUMA              EQU     1                                        ; Enable support for Kuma 40/80 column upgrade.
 
-; NZ-80A Build
+; MZ-80A Build
                         IF BUILD_VERSION = 0
 BUILD_MZ80A               EQU   1                                        ; Build for the standard Sharp MZ80A, no lower memory. Manually change MAXMEM above.
 BUILD_RFS                 EQU   0                                        ; Build for standard RFS with SD enhancements.
@@ -124,6 +124,11 @@ CTAPESAVE               EQU     4
 ; Debugging
 ENADEBUG                EQU     0                                        ; Enable debugging logic, 1 = enable, 0 = disable
 
+; RFS ROM addresses.
+UROMADDR                EQU     0E800H                                   ; Start of User ROM Address space.
+UROMBSTBL               EQU     UROMADDR + 020H                          ; Entry point to the bank switching table.
+RFSJMPTABLE             EQU     UROMADDR + 000B0H                        ; Start of jump table.
+
 ;-----------------------------------------------
 ; CMT Object types.
 ;-----------------------------------------------
@@ -151,13 +156,13 @@ QVRFY                   EQU     0002Dh
 ;-------------------------------------------------------
 ; Function entry points in the RFS ROM.
 ;-------------------------------------------------------
-CMT_RDINF               EQU     0E886H                                   ; UROMADDR+86H - Tape/SD intercept handler - Read Header
-CMT_RDDATA              EQU     0E889H                                   ; UROMADDR+89H - Tape/SD intercept handler - Read Data
-CMT_WRINF               EQU     0E88CH                                   ; UROMADDR+80H - Tape/SD intercept handler - Write Header
-CMT_WRDATA              EQU     0E88FH                                   ; UROMADDR+8FH - Tape/SD intercept handler - Write Data
-CMT_VERIFY              EQU     0E892H                                   ; UROMADDR+92H - Tape/SD intercept handler - Verify Data
-CMT_DIR                 EQU     0E895H                                   ; UROMADDR+95H - SD directory command.
-CNV_ATOS                EQU     0E898H                                   ; UROMADDR+98H - Convert an ASCII string into Sharp ASCII
+CMT_RDINF               EQU     RFSJMPTABLE + 06H                        ; UROMADDR+86H - Tape/SD intercept handler - Read Header
+CMT_RDDATA              EQU     RFSJMPTABLE + 09H                        ; UROMADDR+89H - Tape/SD intercept handler - Read Data
+CMT_WRINF               EQU     RFSJMPTABLE + 0CH                        ; UROMADDR+80H - Tape/SD intercept handler - Write Header
+CMT_WRDATA              EQU     RFSJMPTABLE + 0FH                        ; UROMADDR+8FH - Tape/SD intercept handler - Write Data
+CMT_VERIFY              EQU     RFSJMPTABLE + 12H                        ; UROMADDR+92H - Tape/SD intercept handler - Verify Data
+CMT_DIR                 EQU     RFSJMPTABLE + 15H                        ; UROMADDR+95H - SD directory command.
+CNV_ATOS                EQU     RFSJMPTABLE + 18H                        ; UROMADDR+98H - Convert an ASCII string into Sharp ASCII
 
 ;-----------------------------------------------
 ; BASIC ERROR CODE VALUES

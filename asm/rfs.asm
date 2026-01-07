@@ -11,20 +11,22 @@
 ;- Copyright:       (c) 2018-2023 Philip Smart <philip.smart@net2net.org>
 ;-
 ;- History:   v1.0  July 2019 - Merged 2 utilities to create this compilation.
-;             v2.0  May 2020  - Bank switch changes with release of v2 pcb with coded latch. The coded
-;                               latch adds additional instruction overhead as the control latches share
-;                               the same address space as the Flash RAMS thus the extra hardware to
-;                               only enable the control registers if a fixed number of reads is made
-;                               into the upper 8 bytes which normally wouldnt occur. Caveat - ensure
-;                               that no loop instruction is ever placed into EFF8H - EFFFH.
-;             v2.0  July 2020 - Updated for the v2.1 hardware. RFS can run with a tranZPUter board with
-;                               or without the K64 I/O processor. RFS wont use the K64 processor all
-;                               operations are done by the Z80 under RFS.
+;-            v2.0  May 2020  - Bank switch changes with release of v2 pcb with coded latch. The coded
+;-                              latch adds additional instruction overhead as the control latches share
+;-                              the same address space as the Flash RAMS thus the extra hardware to
+;-                              only enable the control registers if a fixed number of reads is made
+;-                              into the upper 8 bytes which normally wouldnt occur. Caveat - ensure
+;-                              that no loop instruction is ever placed into EFF8H - EFFFH.
+;-            v2.0  July 2020 - Updated for the v2.1 hardware. RFS can run with a tranZPUter board with
+;-                              or without the K64 I/O processor. RFS wont use the K64 processor all
+;-                              operations are done by the Z80 under RFS.
 ;-            v2.1  April 2021- Updates for the v2.1 RFS board.
 ;-            v2.2  June 2023 - Updates for the Kuma 40/80 upgrade and FusionX.
 ;-            v2.3  Aug 2023  - Updates to make RFS run under the SFD700 Floppy Disk Interface board.
 ;-                              UROM remains the same, a 2K paged ROM, MROM is located at F000 when
 ;-                              RFS is built for the SFD700.
+;-            v2.31 Dec 2025  - Bug fixes. Disabled internal floppy control logic for SFD700 as it is not
+;-                              needed, AFI ROM always needs to be present, especially for MZ-80A.
 ;-
 ;--------------------------------------------------------------------------------------------------------
 ;- This source file is free software: you can redistribute it and-or modify
@@ -49,7 +51,7 @@
               ALIGN 0E300H
             ENDIF
 
-            ; Monitor command table. This table contains the list of recognised commands along with the 
+            ; Monitor command table (SFD700). This table contains the list of recognised commands along with the 
             ; handler function and bank in which it is located.
             ;
             ;         7       6     5:3    2:0
@@ -80,10 +82,7 @@ CMDTABLE2: IF BUILD_SFD700 = 1
               DB    'D'                                                  ; Dump Memory.
               DW    DUMPX
               DB    000H | 000H | 008H | 001H
-              DB    'F'                                                  ; RFS Floppy boot code.
-              DW    FLOPPY
-              DB    000H | 000H | 008H | 001H
-              DB    0AAH                                                 ; Original Floppy boot code.
+              DB    'F'                                                  ; 'F' RFS Floppy boot code.
               DW    FDCK
               DB    000H | 000H | 030H | 001H
               DB    'H'                                                  ; Help screen.
@@ -388,7 +387,7 @@ CMDCMP:     XOR     A                                                    ; Clear
               LD    HL,CMDTABLE
             ENDIF
             IF      BUILD_SFD700 = 1
-              LD    HL,CMDTABLE2
+              LD    HL,CMDTABLE2                                         ; SFD700 Command table located in lower location.
             ENDIF
 CMDCMP0:    LD      DE,BUFER+1                                           ; First command byte after the * prompt.
             LD      A,(HL)
@@ -419,9 +418,9 @@ CMDCMP3:    LD      A,(HL)                                               ; Comma
             INC     HL
             LD      H,(HL)
             LD      L,A
-            PUSH    HL
+            PUSH    HL                                                   ; Push the address of the function to be called.
             LD      (TMPADR),DE                                          ; Store the key buffer location where arguments start.
-            LD      A,C
+            LD      A,C                                                  ; Get back command properties, ie. bank number
             SRL     A
             SRL     A
             SRL     A
@@ -433,7 +432,7 @@ CMDCMP3:    LD      A,(HL)                                               ; Comma
             LD      DE,BKSW0to1 - BKSW0to0                               ; DE is the number of bytes between bank switch calls.
             OR      A
             JR      Z,CMDCMP5
-CMDCMP4:    ADD     HL,DE
+CMDCMP4:    ADD     HL,DE                                                ; Basically adding the bank size to the address to get ROM location.
             DJNZ    CMDCMP4
 CMDCMP5:    EX      DE,HL                                                ; Address of bank switch function into DE.
             POP     HL                                                   ; Get address of command into HL.
@@ -441,7 +440,7 @@ CMDCMP5:    EX      DE,HL                                                ; Addre
             PUSH    BC                                                   ; Address to return to after command is executed.
             PUSH    DE                                                   ; Now jump to DE which will switch to the correct bank and execute function at HL.
             LD      DE,(TMPADR)
-            RET
+            RET                                                          ; Return to address in DE, which is the required bank.
 CMDCMP6:    LD      DE,CMDCMPEND                                         ; Put return address onto stack.
             PUSH    DE
             LD      DE,(TMPADR)                                          ; For the current bank, just jump to the function.
@@ -461,7 +460,7 @@ CMDCMPEND:  LD      A,(RESULT)
             LD      HL,(EXADR)
             JP      (HL)
 
-            ; Monitor command table. This table contains the list of recognised commands along with the 
+            ; Monitor command table (ROMDISK). This table contains the list of recognised commands along with the 
             ; handler function and bank in which it is located.
             ;
             ;         7       6     5:3    2:0
@@ -501,10 +500,10 @@ CMDTABLE:   IF      BUILD_ROMDISK = 1
               DB    "EC"                                                 ; Erase file.
               DW    ERASESD
               DB    000H | 000H | 008H | 001H
-              DB    'F'                                                  ; RFS Floppy boot code.
+              DB    'F'                                                  ; 'F' RFS Floppy boot code.
               DW    FLOPPY
               DB    000H | 000H | 008H | 001H
-              DB    0AAH                                                 ; Original Floppy boot code.
+              DB    0AAH                                                 ; 'f' Original Floppy boot code.
               DW    FDCK
               DB    000H | 000H | 030H | 001H
               DB    'H'                                                  ; Help screen.
@@ -617,7 +616,7 @@ HIROM:      IF BUILD_ROMDISK = 1
               LD    A, (MEMSW)                                           ; Swap ROM into high range slot.
               LD    A, ROMBANK2
               LD    (ROMBK1),A                                           ; Save bank being enabled.
-              HWSELMROM                                                    ; Switch to the hiload rom in bank 2.
+              HWSELMROM                                                  ; Switch to the hiload rom in bank 2.
               JP    0C000H
             ENDIF
 
@@ -874,7 +873,6 @@ PRTMZF4:    OR      A
             POP     BC
             RET
 
-
             ; Method to list the directory of the ROM devices.
             ;
 DIRROM:    ;DI                                                           ; Disable interrupts as we are switching out the main rom.
@@ -903,7 +901,7 @@ DIRROM:    ;DI                                                           ; Disab
             ; B = Bank Page
             ; C = Block in page
             ;
-            LD      B,MROMPAGES                                          ; First 8 pages are reserved in MROM bank.
+            LD      B,MROMPAGES                                          ; First set of pages are reserved in MROM bank.
             LD      C,0                                                  ; Block in page.
             ;
 DIRNXTPG:   LD      A,B
@@ -970,7 +968,7 @@ FINDMZF:    PUSH    DE
             ; C = Block in page
             ;
 FINDMZF0:   POP     DE                                                   ; Get file sequence number in D.
-            LD      B,MROMPAGES                                          ; First 4 pages are reserved in User ROM bank.
+            LD      B,MROMPAGES                                          ; First set of pages are reserved in User ROM bank.
             LD      C,0                                                  ; Block in page.
 FINDMZF1:   LD      A,B
             LD      (WRKROMBK1), A
@@ -1051,17 +1049,18 @@ LOADROM1:  ;DI
             PUSH    HL                                                   ; Preserve execute flag.
             EX      DE,HL                                                ; User ROM expects HL to have the filename pointer.
 
-            PUSH    HL                                                   ; Save pointer to filename for FINDMZF in Monitor ROM.
-
             ; D = File sequence number.
             LD      D,0                                                  ; File numbering start.
             ;
-            LD      A,ROMBANK3                                           ; Activate the RFS Utilities MROM bank.
-            LD      (WRKROMBK1), A
-            HWSELMROM
-            CALL    MFINDMZF                                             ; Try and find the file in User ROM via MROM utility.
-            POP     HL
-            JR      Z,MROMLOAD0
+            IF BUILD_ROMDISK = 1
+              PUSH    HL                                                 ; Save pointer to filename for FINDMZF in Monitor ROM.
+              LD      A,ROMBANK3                                         ; Activate the RFS Utilities MROM bank.
+              LD      (WRKROMBK1), A
+              HWSELMROM
+              CALL    MFINDMZF                                           ; Try and find the file in User ROM via MROM utility.
+              POP     HL
+              JR      Z,MROMLOAD0
+            ENDIF
             ;
             CALL    FINDMZF                                              ; Find the bank and block where the file resides. HL = filename.
             JR      Z, LROMLOAD
@@ -1098,7 +1097,7 @@ LOADROMEND:;EI
             ;
 LROMLOAD:   PUSH    BC
             ;
-            PUSH    BC
+            PUSH    BC                                                   ; Print Loading <file>
             LD      DE,MSGLOAD+1
             LD      BC,NAME
             LD      HL,PRINTMSG
@@ -1110,7 +1109,7 @@ LROMLOAD:   PUSH    BC
             HWSELMROM
             ;
             LD      DE, IBUFE                                            ; Copy the header into the work area.
-            LD      HL, 00000h                                           ; Add block offset to get the valid block.
+            LD      HL, MROMSTART                                        ; Add block offset to get the valid block.
             LD      A,C
             IF RFSSECTSZ >= 512
               RLCA
@@ -1141,7 +1140,7 @@ LROMLOAD2:  LD      A, B
             HWSELMROM
 
 LROMLOAD3:  PUSH    BC
-            LD      HL, 00000h
+            LD      HL, MROMSTART
             LD      A, C
             IF RFSSECTSZ >= 512
               RLCA
@@ -1482,6 +1481,10 @@ DEFAULTFNE: EQU     $
             ALIGN   0EFF8h
             ORG     0EFF8h
             DB      0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0FFh,0AAh
+
+            IF      BUILD_SFD700 = 1
+              ALIGN 0F000H
+            ENDIF
 
 MEND:
 

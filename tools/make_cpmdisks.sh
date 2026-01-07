@@ -33,6 +33,11 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #########################################################################################################
 
+echo "--------------------------------------------------------------------------------"
+echo "cpmtool package contains a bug. If cpmcp aborts with malloc issue,"
+echo "obtain and compile cpmtools locally and update path to point to your local copy."
+echo "--------------------------------------------------------------------------------"
+
 # These two variables configure which CPM images and disks to build. If only 1 CPM_RFS ROM Drive is needed,
 # remove it fro the lists.
 #BUILDCPMLIST="cpm22 CPM_RFS_1"
@@ -125,10 +130,11 @@ echo "Creating CPM Disks from all the directories in:$CPM_PATH} matching this fi
  # Build the SD Card images, these images differ as they are larger and combine more programs in one disk under different user numbers.
 
  # Copy a blank image to create the new disk.
- cp ${CPM_PATH}/BLANKFD/BLANK_16M.RAW ${SDC16M_PATH}/RAW/SDCDISK1.RAW;
+ # cp ${CPM_PATH}/BLANKFD/BLANK_16M.RAW ${SDC16M_PATH}/RAW/SDCDISK1.RAW;
 
  # Copy the CPM files from the linux filesystem into the CPM Disk under the CPM filesystem.
  cp ${CPM_PATH}/BLANKFD/BLANK_16M.RAW ${SDC16M_PATH}/RAW/SDCDISK0.RAW;
+ echo "SDCDISK0.RAW..."
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK0.RAW ${CPM_PATH}/CPM00_SYSTEM/*.*          0:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK0.RAW ${CPM_PATH}/CPM01_TURBOP/*.*          1:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK0.RAW ${CPM_PATH}/CPM02_HI_C/*.*            2:
@@ -146,6 +152,7 @@ echo "Creating CPM Disks from all the directories in:$CPM_PATH} matching this fi
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK0.RAW ${CPM_PATH}/CPM33_ZCPR3_COMMON/*.*    14:
 
  cp ${CPM_PATH}/BLANKFD/BLANK_16M.RAW ${SDC16M_PATH}/RAW/SDCDISK1.RAW;
+ echo "SDCDISK1.RAW..."
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK1.RAW ${CPM_PATH}/CPM12_PASCALMTP_v561/*.*  0:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK1.RAW ${CPM_PATH}/CPM26_TPASCAL_v300a/*.*   1:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK1.RAW ${CPM_PATH}/CPM13_MTPUG_01/*.*        2:
@@ -160,6 +167,7 @@ echo "Creating CPM Disks from all the directories in:$CPM_PATH} matching this fi
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK1.RAW ${CPM_PATH}/CPM22_MTPUG_10/*.*        11:
 
  cp ${CPM_PATH}/BLANKFD/BLANK_16M.RAW ${SDC16M_PATH}/RAW/SDCDISK2.RAW;
+ echo "SDCDISK2.RAW..."
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK2.RAW ${CPM_PATH}/CPM23_PLI/*.*             0:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK2.RAW ${CPM_PATH}/CPM24_PLI80_v13/*.*       1:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK2.RAW ${CPM_PATH}/CPM25_PLI80_v14/*.*       2:
@@ -169,6 +177,7 @@ echo "Creating CPM Disks from all the directories in:$CPM_PATH} matching this fi
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK2.RAW ${CPM_PATH}/CPM30_WORDSTAR_v400/*.*   6:
 
  cp ${CPM_PATH}/BLANKFD/BLANK_16M.RAW ${SDC16M_PATH}/RAW/SDCDISK3.RAW;
+ echo "SDCDISK3.RAW..."
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK3.RAW ${CPM_PATH}/CPM_MC_C0/*.*             0:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK3.RAW ${CPM_PATH}/CPM_MC_C1/*.*             1:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK3.RAW ${CPM_PATH}/CPM_MC_C2/*.*             2:
@@ -181,6 +190,7 @@ echo "Creating CPM Disks from all the directories in:$CPM_PATH} matching this fi
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK3.RAW ${CPM_PATH}/CPM_MC_C9/*.*             9:
 
  cp ${CPM_PATH}/BLANKFD/BLANK_16M.RAW ${SDC16M_PATH}/RAW/SDCDISK4.RAW;
+ echo "SDCDISK4.RAW..."
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK4.RAW ${CPM_PATH}/CPM_MC_D0/*.*             0:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK4.RAW ${CPM_PATH}/CPM_MC_D1/*.*             1:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK4.RAW ${CPM_PATH}/CPM_MC_D2/*.*             2:
@@ -194,6 +204,7 @@ echo "Creating CPM Disks from all the directories in:$CPM_PATH} matching this fi
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK4.RAW ${CPM_PATH}/CPM_MC_D9/*.*             9:
 
  cp ${CPM_PATH}/BLANKFD/BLANK_16M.RAW ${SDC16M_PATH}/RAW/SDCDISK5.RAW;
+ echo "SDCDISK5.RAW..."
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK5.RAW ${CPM_PATH}/CPM_MC_E0/*.*             0:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK5.RAW ${CPM_PATH}/CPM_MC_E1/*.*             1:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK5.RAW ${CPM_PATH}/CPM_MC_E2/*.*             2:
@@ -206,6 +217,7 @@ echo "Creating CPM Disks from all the directories in:$CPM_PATH} matching this fi
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK5.RAW ${CPM_PATH}/CPM_MC_E9/*.*             9:
 
  cp ${CPM_PATH}/BLANKFD/BLANK_16M.RAW ${SDC16M_PATH}/RAW/SDCDISK6.RAW;
+ echo "SDCDISK6.RAW..."
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK6.RAW ${CPM_PATH}/CPM_MC_F0/*.*             0:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK6.RAW ${CPM_PATH}/CPM_MC_F1/*.*             1:
  cpmcp -f MZ80A-SDC16M ${SDC16M_PATH}/RAW/SDCDISK6.RAW ${CPM_PATH}/CPM_MC_F2/*.*             2:

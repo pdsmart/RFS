@@ -19,6 +19,9 @@
 ;-                  March 2021- Updates to accommodate the RFS v2.1 board along with back porting TZFS
 ;-                              developments.
 ;-                  May 2023  - Updates to accommodate RFS use on a FusionX board.
+;-                  Aug 2023  - Updates to make RFS run under the SFD700 Floppy Disk Interface board.
+;-                              UROM remains the same, a 2K paged ROM, MROM is located at F000 when
+;-                              RFS is built for the SFD700.
 ;-
 ;--------------------------------------------------------------------------------------------------------
 ;- This source file is free software: you can redistribute it and-or modify
@@ -62,7 +65,7 @@ FDCROMADDR              EQU     0F000H
 
                         IF BUILD_SFD700 = 1
 BNKDEFMROM_MZ80A          EQU   0                                        ; Default MROM (FDC) selected, 1st 4k slot..
-BNKDEFMROM_MZ700          EQU   1                                        ; Default MROM (FDC) selected, 1st 4k slot..
+BNKDEFMROM_MZ700          EQU   1                                        ; Default MROM (FDC) selected, 2nd 4k slot..
 BNKDEFUROM                EQU   2                                        ; Default UROM (RFS) selected, starts at 8K.
                         ENDIF
 
@@ -373,7 +376,12 @@ MROMLOAD:               EQU     MROMJMPTBL + 00006H
 ;            8-15 are reserved for CPM code in
 ;            the User ROM bank.
 ;-----------------------------------------------
-MROMPAGES               EQU     8
+                        IF BUILD_ROMDISK = 1
+MROMPAGES                 EQU     8
+                        ENDIF
+                        IF BUILD_SFD700 = 1
+MROMPAGES                 EQU     12                                     ; 10 Pages (8 but Bank6/7 are 2 pages) + 2 pages for ROMs
+                        ENDIF
 USRROMPAGES             EQU     12                                       ; Monitor ROM         :  User ROM
                         IF BUILD_ROMDISK = 1
 ROMBANK0                  EQU   0                                        ; MROM SA1510 40 Char :  RFS Bank 0 - Main RFS Entry point and functions.
@@ -398,7 +406,7 @@ ROMBANK4                  EQU   4  + BNKDEFUROM                          ;      
 ROMBANK5                  EQU   5  + BNKDEFUROM                          ;                     :  RFS Bank 5
 ROMBANK6                  EQU   6  + BNKDEFUROM                          ;                     :  RFS Bank 6
 ROMBANK7                  EQU   8  + BNKDEFUROM                          ;                     :  RFS Bank 7 - Memory and timer test utilities.
-ROMBANK8                  EQU   10  + BNKDEFUROM                          ;                     :  CBIOS Bank 1 - Utilities
+ROMBANK8                  EQU   10 + BNKDEFUROM                          ;                     :  CBIOS Bank 1 - Utilities
 ROMBANK9                  EQU   11 + BNKDEFUROM                          ;                     :  CBIOS Bank 2 - Screen / ANSI Terminal
 ROMBANK10                 EQU   12 + BNKDEFUROM                          ;                     :  CBIOS Bank 3 - SD Card
 ROMBANK11                 EQU   13 + BNKDEFUROM                          ;                     :  CBIOS Bank 4 - Floppy disk controller.
