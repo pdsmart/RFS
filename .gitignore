@@ -74,7 +74,6 @@ roms/SHARP_MZ80A_RFS_IMAGE_1.img
 roms/cmp
 tools/Master0.z80
 tools/Master1.z80
-tools/assemble_rfs.sh
 src/tools/.flashmmcfg.c.swo
 src/tools/x
 CPM/1M44/DSK/CPM_1M44_RFS_1.DSK
